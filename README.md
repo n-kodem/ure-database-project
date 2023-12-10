@@ -1,6 +1,7 @@
 # ure-database-project
 database based on https://rejestry.ure.gov.pl/
 
+# Entity Relationship Diagram
 ```mermaid
 erDiagram
     concession_fuel ||--o{ concession_withdrawn : places
