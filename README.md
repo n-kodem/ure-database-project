@@ -99,10 +99,10 @@ erDiagram
       podstawaprawna  varchar(255)   
       uwagi  text  
     }
-    concession_fuel ||--o| concession_withdrawn : 
-    concession_other_fuel ||--o| concession_withdrawn : 
-    concession_fuel ||..o|  concession_expiry : 
-    concession_other_fuel ||..o|  concession_expiry : 
-    concession_fuel ||--o| concession_promise : 
-    concession_other_fuel ||--o| concession_promise : 
+    concession_fuel ||--o| concession_withdrawn : ""
+    concession_other_fuel ||--o| concession_withdrawn : ""
+    concession_fuel ||..o|  concession_expiry : ""
+    concession_other_fuel ||..o|  concession_expiry : ""
+    concession_fuel ||--o| concession_promise : ""
+    concession_other_fuel ||--o| concession_promise : ""
 ```
