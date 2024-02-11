@@ -1,72 +1,36 @@
--- Trigger dla tabeli 'concession_fuel'
-DELIMITER //
-CREATE TRIGGER trg_concession_fuel_nip
-BEFORE INSERT ON concession_fuel
+CREATE TRIGGER UpdateConcession
+AFTER UPDATE ON concession_withdrawn
 FOR EACH ROW
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM concession_withdrawn WHERE nip = NEW.nip) AND
-       NOT EXISTS (SELECT 1 FROM concession_expiry WHERE nip = NEW.nip) AND
-       NOT EXISTS (SELECT 1 FROM concession_promise WHERE nip = NEW.nip) THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Referential integrity violation: NIP not found in related tables.';
-    END IF;
+    -- Aktualizacja danych w innych tabelach na podstawie zmian w tabeli concession_withdrawn
+    UPDATE concession_expiry SET podstawaprawna = NEW.podstawaprawna WHERE nip = NEW.nip;
+    UPDATE concession_promise SET podstawaprawna = NEW.podstawaprawna WHERE nip = NEW.nip;
 END;
-//
-DELIMITER ;
 
--- Trigger dla tabeli 'concession_other_fuel'
-DELIMITER //
-CREATE TRIGGER trg_concession_other_fuel_nip
-BEFORE INSERT ON concession_other_fuel
+CREATE TRIGGER DeleteConcession
+AFTER DELETE ON concession_withdrawn
 FOR EACH ROW
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM concession_withdrawn WHERE nip = NEW.nip) AND
-       NOT EXISTS (SELECT 1 FROM concession_expiry WHERE nip = NEW.nip) AND
-       NOT EXISTS (SELECT 1 FROM concession_promise WHERE nip = NEW.nip) THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Referential integrity violation: NIP not found in related tables.';
-    END IF;
-END;
-//
-DELIMITER ;
--- Trigger dla tabeli 'concession_withdrawn'
-DELIMITER //
-CREATE TRIGGER trg_concession_withdrawn_delete
-BEFORE DELETE ON concession_withdrawn
-FOR EACH ROW
-BEGIN
-    DELETE FROM concession_fuel WHERE nip = OLD.nip;
+    -- Usunięcie danych z innych tabel na podstawie usunięcia z tabeli concession_withdrawn
     DELETE FROM concession_expiry WHERE nip = OLD.nip;
     DELETE FROM concession_promise WHERE nip = OLD.nip;
-    DELETE FROM concession_other_fuel WHERE nip = OLD.nip;
 END;
-//
-DELIMITER ;
 
--- Trigger dla tabeli 'concession_expiry'
-DELIMITER //
-CREATE TRIGGER trg_concession_expiry_delete
-BEFORE DELETE ON concession_expiry
+CREATE TRIGGER UpdateConcessionValidity
+BEFORE INSERT ON concession_expiry
 FOR EACH ROW
 BEGIN
-    DELETE FROM concession_fuel WHERE nip = OLD.nip;
-    DELETE FROM concession_withdrawn WHERE nip = OLD.nip;
-    DELETE FROM concession_promise WHERE nip = OLD.nip;
-    DELETE FROM concession_other_fuel WHERE nip = OLD.nip;
+    -- Obliczanie nowej daty ważności koncesji na podstawie daty wygaśnięcia
+    SET NEW.datawygasniecia = DATE_ADD(NEW.datawygasniecia, INTERVAL 1 YEAR);
 END;
-//
-DELIMITER ;
+-- Jego celem jest automatyczne aktualizowanie daty ważności koncesji na podstawie daty wygaśnięcia. W tym przypadku, założyliśmy, że koncesje mają ważność przez rok, więc nowa data ważności jest obliczana poprzez dodanie roku do daty wygaśnięcia.
 
--- Trigger dla tabeli 'concession_promise'
-DELIMITER //
-CREATE TRIGGER trg_concession_promise_delete
-BEFORE DELETE ON concession_promise
+CREATE TRIGGER SyncConcessionData
+AFTER INSERT ON concession_withdrawn
 FOR EACH ROW
 BEGIN
-    DELETE FROM concession_fuel WHERE nip = OLD.nip;
-    DELETE FROM concession_withdrawn WHERE nip = OLD.nip;
-    DELETE FROM concession_expiry WHERE nip = OLD.nip;
-    DELETE FROM concession_other_fuel WHERE nip = OLD.nip;
+    -- Synchronizacja danych koncesji między różnymi tabelami
+    INSERT INTO concession_expiry (dkn, nazwa, adres, kod_pocztowy, miejscowosc, wojewodztwo, nip, regon, rodzajkoncesji, datawygasniecia, sposobrozstrzygniecia, podstawaprawna, uwagi)
+    VALUES (NEW.dkn, NEW.nazwa, NEW.adres, NEW.kod_pocztowy, NEW.miejscowosc, NEW.wojewodztwo, NEW.nip, NEW.regon, NEW.rodzajkoncesji, NEW.datacofniecia, 'Wycofanie', NEW.podstawaprawna, NEW.uwagi);
 END;
-//
-DELIMITER ;
+-- Po wycofaniu koncesji, dane dotyczące tego wycofania są również dodawane do tabeli concession_expiry, aby zachować spójność danych.
