@@ -1,5 +1,6 @@
 # ure-database-project
-database based on https://rejestry.ure.gov.pl/
+
+database based on <https://rejestry.ure.gov.pl/>
 
 ## Entity Relationship Diagram
 
