@@ -4,6 +4,8 @@ database based on <https://rejestry.ure.gov.pl/>
 
 ## Entity Relationship Diagram
 
+<iframe width="560" height="315" src='https://dbdiagram.io/e/6563bca53be1495787c3de42/6600b65eae072629ced615f3'> </iframe>
+
 ```mermaid
 ---
 title: Urząd Regulacji Energetyki
