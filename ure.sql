@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Mar 24, 2024 at 04:39 PM
--- Wersja serwera: 10.4.32-MariaDB
--- Wersja PHP: 8.2.12
+-- Generation Time: Mar 24, 2024 at 08:07 PM
+-- Server version: 10.4.32-MariaDB
+-- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -21,10 +21,168 @@ SET time_zone = "+00:00";
 -- Database: `ure`
 --
 
+DELIMITER $$
+--
+-- Procedures
+--
+CREATE DEFINER=`root`@`localhost` PROCEDURE `ConfieteKoncesjeDanegoRodzaju` (IN `szukany_rodzaj` VARCHAR(255))   BEGIN
+    SELECT *
+	FROM concession_withdrawn
+	WHERE rodzajkoncesji = szukany_rodzaj;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `ExportTableToCSV` (IN `table_name` VARCHAR(255))   BEGIN
+    SET @filename = CONCAT('C:/backup/', table_name, '_', DATE_FORMAT(NOW(), '%Y-%m-%d_%H-%i-%s'), '.csv');
+    SET @query = CONCAT('SELECT * INTO OUTFILE \'', @filename, '\' FIELDS TERMINATED BY \';\' OPTIONALLY ENCLOSED BY \'"\' LINES TERMINATED BY \'\\n\' FROM ', table_name);
+    PREPARE stmt FROM @query;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `KoncesjeOdrzuconeWxOstatnichLatach` (IN `x` INT)   BEGIN
+    SELECT concession_refused.*
+    FROM concession_refused
+    WHERE YEAR(current_timestamp()) - x <= YEAR(dataWydania);
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `KoncesjeUmorzoneWxOstatnichLatach` (IN `x` INT)   BEGIN
+    SELECT concession_remitted.*
+    FROM concession_remitted
+    WHERE YEAR(current_timestamp()) - x <= YEAR(dataWydania);
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `KoncesjeWygasnieteWxOstatnichLatach` (IN `x` INT)   BEGIN
+	SELECT concession_expiry.*
+    FROM concession_expiry
+    WHERE YEAR(current_timestamp()) - x <= YEAR(datawygasniecia);
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `ZnajdzPoNazwie` (IN `nazwa_pattern` VARCHAR(255))   BEGIN
+    SELECT nazwa, nip, GROUP_CONCAT(tablica SEPARATOR ' ') AS tablice
+    FROM (
+        SELECT DISTINCT nazwa, nip, 'concession_other_fuel' AS tablica FROM concession_other_fuel WHERE nazwa LIKE CONCAT('%', nazwa_pattern, '%')
+        UNION ALL
+        SELECT DISTINCT nazwa, nip, 'concession_fuel' AS tablica FROM concession_fuel WHERE nazwa LIKE CONCAT('%', nazwa_pattern, '%')
+        UNION ALL
+        SELECT DISTINCT nazwa, nip, 'concession_application' AS tablica FROM concession_application WHERE nazwa LIKE CONCAT('%', nazwa_pattern, '%')
+        UNION ALL
+        SELECT DISTINCT nazwa, nip, 'concession_expiry' AS tablica FROM concession_expiry WHERE nazwa LIKE CONCAT('%', nazwa_pattern, '%')
+        UNION ALL
+        SELECT DISTINCT nazwa, nip, 'concession_promise' AS tablica FROM concession_promise WHERE nazwa LIKE CONCAT('%', nazwa_pattern, '%')
+        UNION ALL
+        SELECT DISTINCT nazwa, nip, 'concession_refused' AS tablica FROM concession_refused WHERE nazwa LIKE CONCAT('%', nazwa_pattern, '%')
+        UNION ALL
+        SELECT DISTINCT nazwa, nip, 'concession_remitted' AS tablica FROM concession_remitted WHERE nazwa LIKE CONCAT('%', nazwa_pattern, '%')
+        UNION ALL
+        SELECT DISTINCT nazwa, nip, 'concession_withdrawn' AS tablica FROM concession_withdrawn WHERE nazwa LIKE CONCAT('%', nazwa_pattern, '%')
+        UNION ALL
+        SELECT DISTINCT nazwa, nip, 'concession_without_recognition' AS tablica FROM concession_without_recognition WHERE nazwa LIKE CONCAT('%', nazwa_pattern, '%')
+    ) AS merged_tables
+    GROUP BY nazwa, nip
+    ORDER BY `tablice` DESC;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `ZnajdzPoNip` (IN `szukany_nip` VARCHAR(255))   BEGIN
+    SELECT nazwa, nip, GROUP_CONCAT(tablica SEPARATOR ' ') AS tablice
+    FROM (
+        SELECT DISTINCT nazwa, nip, 'concession_other_fuel' AS tablica FROM concession_other_fuel WHERE nip = szukany_nip
+        UNION ALL
+        SELECT DISTINCT nazwa, nip, 'concession_fuel' AS tablica FROM concession_fuel WHERE nip = szukany_nip
+        UNION ALL
+        SELECT DISTINCT nazwa, nip, 'concession_application' AS tablica FROM concession_application WHERE nip = szukany_nip
+        UNION ALL
+        SELECT DISTINCT nazwa, nip, 'concession_expiry' AS tablica FROM concession_expiry WHERE nip = szukany_nip
+        UNION ALL
+        SELECT DISTINCT nazwa, nip, 'concession_promise' AS tablica FROM concession_promise WHERE nip = szukany_nip
+        UNION ALL
+        SELECT DISTINCT nazwa, nip, 'concession_refused' AS tablica FROM concession_refused WHERE nip = szukany_nip
+        UNION ALL
+        SELECT DISTINCT nazwa, nip, 'concession_remitted' AS tablica FROM concession_remitted WHERE nip = szukany_nip
+        UNION ALL
+        SELECT DISTINCT nazwa, nip, 'concession_withdrawn' AS tablica FROM concession_withdrawn WHERE nip = szukany_nip
+        UNION ALL
+        SELECT DISTINCT nazwa, nip, 'concession_without_recognition' AS tablica FROM concession_without_recognition WHERE nip = szukany_nip
+    ) AS merged_tables
+    GROUP BY nazwa, nip  
+    ORDER BY `tablice` DESC;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `ZnajdzPoRegon` (IN `szukany_regon` VARCHAR(255))   BEGIN
+    SELECT nazwa, nip, regon, GROUP_CONCAT(tablica SEPARATOR ' ') AS tablice
+    FROM (
+        SELECT DISTINCT nazwa, nip, regon, 'concession_other_fuel' AS tablica FROM concession_other_fuel WHERE regon = szukany_regon
+        UNION ALL
+        SELECT DISTINCT nazwa, nip, regon, 'concession_fuel' AS tablica FROM concession_fuel WHERE regon = szukany_regon
+        UNION ALL
+        SELECT DISTINCT nazwa, nip, regon, 'concession_application' AS tablica FROM concession_application WHERE regon = szukany_regon
+        UNION ALL
+        SELECT DISTINCT nazwa, nip, regon, 'concession_expiry' AS tablica FROM concession_expiry WHERE regon = szukany_regon
+        UNION ALL
+        SELECT DISTINCT nazwa, nip, regon, 'concession_promise' AS tablica FROM concession_promise WHERE regon = szukany_regon
+        UNION ALL
+        SELECT DISTINCT nazwa, nip, regon, 'concession_refused' AS tablica FROM concession_refused WHERE regon = szukany_regon
+        UNION ALL
+        SELECT DISTINCT nazwa, nip, regon, 'concession_withdrawn' AS tablica FROM concession_withdrawn WHERE regon = szukany_regon
+        UNION ALL
+        SELECT DISTINCT nazwa, nip, regon, 'concession_without_recognition' AS tablica FROM concession_without_recognition WHERE regon = szukany_regon
+    ) AS merged_tables
+    GROUP BY nazwa, nip, regon  
+    ORDER BY `tablice` DESC;
+END$$
+
+--
+-- Functions
+--
+CREATE DEFINER=`root`@`localhost` FUNCTION `IleNumerowAkcyzowych` (`input_string` VARCHAR(255)) RETURNS INT(11)  BEGIN
+    DECLARE num_excise_numbers INT DEFAULT 0;
+    DECLARE temp_string VARCHAR(255);
+    DECLARE delimiter_pos INT;
+    DECLARE excise_number VARCHAR(255);
+
+    -- Jeśli wartość wejściowa jest NULL lub pusta, zwróć 0
+    IF input_string IS NULL OR input_string = '' THEN
+        RETURN 0;
+    END IF;
+
+    -- Zamień wszystkie litery na małe litery, aby uniknąć problemów z wielkością liter
+    SET temp_string = LOWER(input_string);
+
+    -- Jeśli ciąg zawiera frazę "nie posiada", zwróć 0
+    IF INSTR(temp_string, 'nie posiada') > 0 THEN
+        RETURN 0;
+    END IF;
+
+    -- Inicjalizacja pozycji początkowej na 1
+    SET delimiter_pos = 1;
+
+    -- Iteruj przez ciąg, dzieląc go na poszczególne numery akcyzowe
+    WHILE delimiter_pos > 0 DO
+        -- Znajdź pozycję kolejnego średnika
+        SET delimiter_pos = INSTR(temp_string, ';');
+        -- Wytnij numer akcyzowy z ciągu
+        IF delimiter_pos > 0 THEN
+            SET excise_number = SUBSTRING(temp_string, 1, delimiter_pos - 1);
+            -- Usuń przetworzony numer akcyzowy z ciągu
+            SET temp_string = SUBSTRING(temp_string, delimiter_pos + 1);
+        ELSE
+            SET excise_number = temp_string;
+        END IF;
+
+        -- Jeśli numer akcyzowy nie jest pusty, dodaj go do licznika
+        IF excise_number != '' THEN
+            SET num_excise_numbers = num_excise_numbers + 1;
+        END IF;
+    END WHILE;
+
+    RETURN num_excise_numbers;
+END$$
+
+DELIMITER ;
+
 -- --------------------------------------------------------
 
 --
--- Struktura tabeli dla tabeli `concession_application`
+-- Table structure for table `concession_application`
 --
 
 CREATE TABLE `concession_application` (
@@ -1005,7 +1163,7 @@ INSERT INTO `concession_application` (`id`, `dkn`, `nazwa`, `poczta`, `adres`, `
 -- --------------------------------------------------------
 
 --
--- Struktura tabeli dla tabeli `concession_expiry`
+-- Table structure for table `concession_expiry`
 --
 
 CREATE TABLE `concession_expiry` (
@@ -5942,7 +6100,7 @@ INSERT INTO `concession_expiry` (`id`, `dkn`, `nazwa`, `poczta`, `adres`, `kod`,
 -- --------------------------------------------------------
 
 --
--- Struktura tabeli dla tabeli `concession_fuel`
+-- Table structure for table `concession_fuel`
 --
 
 CREATE TABLE `concession_fuel` (
@@ -6053,7 +6211,7 @@ INSERT INTO `concession_fuel` (`id`, `dkn`, `nazwa`, `adres`, `kod`, `miejscowos
 -- --------------------------------------------------------
 
 --
--- Struktura tabeli dla tabeli `concession_other_fuel`
+-- Table structure for table `concession_other_fuel`
 --
 
 CREATE TABLE `concession_other_fuel` (
@@ -8923,7 +9081,7 @@ INSERT INTO `concession_other_fuel` (`id`, `dkn`, `nazwa`, `poczta`, `adres`, `k
 -- --------------------------------------------------------
 
 --
--- Struktura tabeli dla tabeli `concession_promise`
+-- Table structure for table `concession_promise`
 --
 
 CREATE TABLE `concession_promise` (
@@ -9364,7 +9522,7 @@ INSERT INTO `concession_promise` (`id`, `dkn`, `nazwa`, `adres`, `kod`, `miejsco
 -- --------------------------------------------------------
 
 --
--- Struktura tabeli dla tabeli `concession_refused`
+-- Table structure for table `concession_refused`
 --
 
 CREATE TABLE `concession_refused` (
@@ -9635,7 +9793,7 @@ INSERT INTO `concession_refused` (`id`, `dkn`, `nazwa`, `poczta`, `adres`, `kod`
 -- --------------------------------------------------------
 
 --
--- Struktura tabeli dla tabeli `concession_remitted`
+-- Table structure for table `concession_remitted`
 --
 
 CREATE TABLE `concession_remitted` (
@@ -9650,7 +9808,7 @@ CREATE TABLE `concession_remitted` (
   `nip` varchar(20) NOT NULL,
   `rodzajKoncesji` varchar(3) DEFAULT NULL,
   `sposobZakonczenia` varchar(255) DEFAULT NULL,
-  `dataWydania` datetime DEFAULT NULL,
+  `dataWydania` date DEFAULT NULL,
   `sprawa` varchar(255) DEFAULT NULL,
   `podstawaPrawna` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
@@ -9660,495 +9818,495 @@ CREATE TABLE `concession_remitted` (
 --
 
 INSERT INTO `concession_remitted` (`id`, `dkn`, `nazwa`, `poczta`, `adres`, `kod`, `miejscowosc`, `wojewodztwo`, `nip`, `rodzajKoncesji`, `sposobZakonczenia`, `dataWydania`, `sprawa`, `podstawaPrawna`) VALUES
-(1, 24576, '\\Agro\\ Piotr Sacher', 'Kotulin', 'ul. Skalna 3', '44-180', 'Kotulin', 'śląskie', '9690924820', 'OPC', 'umorzono', '2016-09-08 00:00:00', 'udzielenie koncesji', ''),
-(2, 5147, '\\Air Products\\ Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Komitetu Obrony Robotników 48', '02-146', 'Warszawa', 'mazowieckie', '5260213184', 'OPC', 'umorzono', '2016-09-23 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(3, 20009, '\\ALMAR\\ Sp. z o.o.', 'Rozprza', 'Mierzyn 147A', '97-340', 'Mierzyn', 'łódzkie', '7712829483', 'OPC', 'umorzono', '2017-03-14 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(4, 30586, '\\ARGAZ.EU\\ Sp. z o.o.', 'Tarczyn', 'ul. Piekarnicza 16', '05-555', 'Jeziorzany', 'mazowieckie', '1231312711', 'OPC', 'umorzono', '2016-09-26 00:00:00', 'udzielenie koncesji', ''),
-(5, 28130, '\\AUTOPART\\ Spółka Akcyjna', 'Mielec', 'ul. Kwiatkowskiego 2A', '39-300', 'Mielec', 'podkarpackie', '8171752627', 'OEE', 'umorzono', '2020-04-08 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(6, 18982, '\\BIO NATURA\\ Jacek Mazurek', 'Radzanów', 'Wróblewo 40', '06-540', 'Radzanów', 'mazowieckie', '5252174044', 'WEE', 'umorzono', '2018-08-01 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(7, 19176, '\\Bit-Energia\\ Spółka z ograniczoną odpowiedzialnością', 'Gdynia', 'ul. Granatowa 11', '81-113', 'Gdynia', 'pomorskie', '9581612984', 'WEE', 'umorzono', '2022-01-19 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(8, 26756, '\\ECCO-ENERGIA Sp. z o.o. Sp. k.', 'Płock', 'ul. Franciszka Zubrzyckiego 11', '09-410', 'Płock', 'mazowieckie', '7743226047', 'WEE', 'umorzono', '2019-06-11 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(9, 14315, '\\GRAWAL\\ DZIUBAK I WSPÓLNICY Sp. j.', 'Józefów', 'Powstańców Warszawy 4C', '05-420', 'Józefów', 'mazowieckie', '9512063416', 'OPC', 'umorzono', '2022-06-02 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(10, 28442, '\\JURMAR\\ JERZY STRZAŁKOWSKI, MARCIN STRZAŁKOWSKI Sp. j.', 'Jedlińsk', 'ul. Warszawska 1a', '26-660', 'Wielogóra', 'mazowieckie', '7962971087', 'OPC', 'umorzono', '2018-05-08 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(11, 28442, '\\JURMAR\\ JERZY STRZAŁKOWSKI, MARCIN STRZAŁKOWSKI Sp. j.', 'Jedlińsk', 'ul. Warszawska 1a', '26-660', 'Wielogóra', 'mazowieckie', '7962971087', 'OPC', 'umorzono', '2016-09-12 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(12, 17631, '\\K.A.R.\\ sp. z o.o.', 'Piekary Śląskie', 'ul. Parkowa 15', '41-940', 'Piekary Śląskie', 'śląskie', '6452386159', 'OPC', 'umorzono', '2016-09-06 00:00:00', 'udzielenie koncesji', ''),
-(13, 17643, '\\Komplet\\ sp. z o.o.', 'Ożarowice', 'ul. Transportowa 2', '42-625', 'Pyrzowice', 'śląskie', '6351010814', 'OPC', 'umorzono', '2016-09-05 00:00:00', 'udzielenie koncesji', ''),
-(14, 64558, '\\MASZT\\ spółka z ograniczoną odpowiedzialnością', 'Gorzów Wlkp.', 'Fredry 10', '66-400', 'Gorzów Wlkp.', 'lubuskie', '7821989458', 'OPC', 'umorzono', '2019-04-05 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(15, 8548, '\\NAG -PAL Stacja paliw i usługi transportowe Naklicki Zbigniew 22-375 Izbica, ul. Lubelska 105; Stacja paliw Nowa Kolonia Horyszów Polski 48, 22-424 Sitno', 'Izbica', 'ul. Lubelska 105', '22-375', 'Izbica', 'lubelskie', '9221002108', 'OPC', 'umorzono', '2018-12-11 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(16, 17616, '\\Persona\\ sp. z o.o.', 'Knurów', 'ul. Szpitalna 42', '44-190', 'Knurów', 'śląskie', '7822155749', 'OPC', 'umorzono', '2016-09-06 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(17, 65047, '\\POLPOWER\\ spółka z ograniczoną odpowiedzialnością', 'Jelenia Góra', 'ul. Obrońców Pokoju 2B', '58-500', 'Jelenia Góra', 'dolnośląskie', '6722021227', 'WEE', 'umorzono', '2020-03-17 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(18, 30610, '\\SILLA BIS\\ Klaudia Guzara', 'Niedźwiedź', 'Niedźwiedź 265', '34-735', 'Niedźwiedź', 'małopolskie', '7372048426', 'OPC', 'umorzono', '2016-09-15 00:00:00', 'udzielenie koncesji', ''),
-(19, 24356, '\\TLS\\ Spółka z ograniczoną odpowiedzialnością', 'Repki', 'Kobylany Górne 7', '08-307', 'Repki', 'mazowieckie', '8231658376', 'OPC', 'umorzono', '2016-09-27 00:00:00', 'udzielenie koncesji', ''),
-(20, 14232, '\\UNI-LUX\\ Sp. z o.o.', 'Warszawa', 'ul. Jana Kazimierza 61', '01-267', 'Warszawa', 'mazowieckie', '5261347573', 'OPC', 'umorzono', '2016-09-26 00:00:00', 'udzielenie koncesji', ''),
-(21, 24477, 'A&A Firma Handlowo-Usługowa s.c. SUŚLIK&SUŚLIK', 'Alweria', 'ul. Krakowska 57A', '32-566', 'Alwernia', 'małopolskie', '6751025535', 'OPC', 'umorzono', '2018-04-23 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(22, 30476, 'A.T.- OIL sp. z o.o.', 'Lipinki', 'Rozdziele 70', '38-305', 'Lipinki', 'małopolskie', '6793098763', 'OPC', 'umorzono', '2016-09-14 00:00:00', 'udzielenie koncesji', ''),
-(23, 28407, 'AB GLOBAL COMMERCE Sp. z o.o.', 'Poznań', 'ul. Lechicka 59A lok 6', '61-695', 'Poznań', 'wielkopolskie', '9721264432', 'OPC', 'umorzono', '2016-09-19 00:00:00', 'udzielenie koncesji', ''),
-(24, 16065, 'Adam Grzegorczyk ADAMEX', 'Nałęczów 3', 'Moszna', '24-150', 'Nałęczów 3', 'lubelskie', '7121046246', 'OPC', 'umorzono', '2016-09-23 00:00:00', 'udzielenie koncesji', ''),
-(25, 11888, 'Adam Krukowski Elektrownia Wodna', 'Sułów', 'Tworyczów x', '22-448', 'Sułów', 'lubelskie', '9221061973', 'WEE', 'umorzono', '2018-03-13 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(26, 64884, 'AEC spółka z ograniczoną odpowiedzialnością', 'Andrychów', 'ul. Stefana Batorego 24', '34-120', 'Andrychów', 'małopolskie', '5512641420', 'DPG', 'umorzono', '2020-12-02 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(27, 66196, 'AG RECYKLING Sp. z o.o.', 'Wolsztyn', 'Wolsztyńska 5', '64-200', 'Wroniawy', 'wielkopolskie', '9231693798', 'OPC', 'umorzono', '2021-08-04 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(28, 14323, 'Agata Pełka Stacja Paliw Płynnych i Gazowych Agata Pełka', 'Emów', 'ul. Wiązowska 1a', '05-462', 'Emów', 'mazowieckie', '9521920989', 'OPC', 'umorzono', '2018-12-10 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(29, 28409, 'Agencja Celna TERMINUS E.S.Grygatowicz-Szumowska Sp.j.', 'Bialystok', 'ul. Octowa 26', '15-399', 'Bialystok', 'podlaskie', '5422749941', 'OPZ', 'umorzono', '2016-09-12 00:00:00', 'udzielenie koncesji', ''),
-(30, 24884, 'ALANDA Dobosz Krzysztof', 'Mińsk Mazowiecki', 'Karolina ul.Główna 108', '05-300', 'Mińsk Mazowiecki', 'mazowieckie', '8221117101', 'OPC', 'umorzono', '2017-01-19 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(31, 30667, 'ALFA + Iwona Kamińska', 'Gronówek', 'Gronówek 17', '98-270', 'Gronówek', 'łódzkie', '8271326947', 'OPC', 'umorzono', '2016-09-19 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(32, 28096, 'ALTER CT sp. z o.o.', 'Stalowa Wola', 'ul. Przemysłowa 11', '37-450', 'Stalowa Wola', 'podkarpackie', '8652562662', 'OPC', 'umorzono', '2016-09-14 00:00:00', 'udzielenie koncesji', ''),
-(33, 28045, 'AMAR Andrzej Marczewski', 'Gdańsk', 'ul. gen. Józefa Hallera 126', '80-416', 'Gdańsk', 'pomorskie', '5840002162', 'OPC', 'umorzono', '2016-09-09 00:00:00', 'udzielenie koncesji', ''),
-(34, 30503, 'Apexim AB Paliwa III Sp. z o.o.', 'Zielona Góra', 'ul. Lwowska 25', '65-225', 'Zielona Góra', 'lubuskie', '9731031735', 'OPC', 'umorzono', '2016-09-23 00:00:00', 'udzielenie koncesji', ''),
-(35, 69406, 'APLEONA POLSKA Sp. z o.o.', 'Warszawa', 'Krakowiaków 36', '02-255', 'Warszawa', 'mazowieckie', '7792088473', 'OPC', 'umorzono', '2022-03-18 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(36, 22014, 'ARCTURUS - BUNKER Sp. z o.o.', 'Szczecin', 'ul. Hryniewieckiego 1', '70-606', 'Szczecin', 'zachodniopomorskie', '9552268099', 'MPC', 'umorzono', '2018-03-30 00:00:00', 'udzielenie koncesji (*)', 'art. 105 § 1 kpa'),
-(37, 4887, 'Arcturus Sp. z o.o.', 'Szczecin', 'ul. Hryniewieckiego 1', '70-606', 'Szczecin', 'zachodniopomorskie', '5832840931', 'MPC', 'umorzono', '2019-03-08 00:00:00', 'udzielenie koncesji (*)', 'art. 105 § 1 kpa'),
-(38, 28345, 'ARVIKA VK Sp. z o.o.', 'Warszawa', 'ul. Budy nr 5', '01-466', 'Warszawa', 'mazowieckie', '5223050948', 'OPC', 'umorzono', '2016-10-10 00:00:00', 'udzielenie koncesji', ''),
-(39, 16999, 'ASS-CARO Sp. z o.o.', 'Parzęczew', 'ul. Łęczycka 39', '95-045', 'Parzęczew', 'łódzkie', '7322138529', 'OPC', 'umorzono', '2016-10-13 00:00:00', 'udzielenie koncesji', ''),
-(40, 69208, 'AS-TRANS Agnieszka Śpiewak', 'Kobyłka', 'Krechowiecka 48', '05-230', 'Kobyłka', 'mazowieckie', '5361222925', 'OPC', 'umorzono', '2021-09-17 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(41, 28030, 'ATAMAN Zbigniew Dobrzyński', 'Tomaszów Mazowiecki', 'ul. Maksymiliana Kolbe 2/4 lok 36', '97-200', 'Tomaszów Mazowiecki', 'łódzkie', '7731654352', 'OPC', 'umorzono', '2016-09-27 00:00:00', 'udzielenie koncesji', ''),
-(42, 19744, 'AUTO GAZ USŁUGI TRANSPORTOWE MARIUSZ BRZEZIŃSKI', 'Warszawa', 'ul. Kobielska 9 lok. 31', '04-359', 'Warszawa', 'mazowieckie', '6581825460', 'OPC', 'umorzono', '2022-02-28 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(43, 20967, 'AUTO KABZIŃSKI Sp. z o.o.', 'Piotrków Trybunalski', 'ul. Sulejowska 45', '97-300', 'Piotrków Tryb.', 'łódzkie', '7712881785', 'OPC', 'umorzono', '2020-10-27 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(44, 30598, 'Auto-Mix Krystian Klapuch', 'Skrzyszów', 'ul. Dębowa 14B', '44-348', 'Skrzyszów', 'śląskie', '6471106764', 'OPC', 'umorzono', '2016-09-07 00:00:00', 'udzielenie koncesji', ''),
-(45, 69328, 'AUTO-ORUNIA SPÓŁKA JAWNA J.MAZURCZAK-ROMPA, A.PAZDZIOREK', 'Gdańsk', 'ul. Starogardzka 22', '80-058', 'Gdańsk', 'pomorskie', '5830069377', 'OPC', 'umorzono', '2021-03-25 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(46, 28287, 'AUTOPOL Sp. z o.o.', 'Zbąszyń', 'ul. Prandoty 195', '64-360', 'Prandoty', 'wielkopolskie', '7882002877', 'OPC', 'umorzono', '2016-09-20 00:00:00', 'udzielenie koncesji', ''),
-(47, 26651, 'AVATR Sp. z o.o.', 'Poznań', 'ul. Toruńska 22', '61-045', 'Poznań', 'wielkopolskie', '7822591373', 'OPC', 'umorzono', '2016-10-11 00:00:00', 'udzielenie koncesji', ''),
-(48, 30452, 'Avneo Wrocław sp. z o.o.', 'Wrocław', 'Hugona Kołłątaja 29/30 / 61', '50-004', 'Wrocław', 'dolnośląskie', '8971823033', 'OPC', 'umorzono', '2016-10-03 00:00:00', 'udzielenie koncesji', ''),
-(49, 54700, 'AXAN ENERGY Sp. z o.o. Sp. komandytowa', 'Bielany', 'ul. Siedlecka 1', '08-311', 'Bielany', 'mazowieckie', '8231663041', 'MPC', 'umorzono', '2018-11-13 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(50, 26932, 'AZ SERVICE Sp. z o.o.', 'Poznań', 'ul. Sielska 17A', '60-129', 'Poznań', 'wielkopolskie', '7792438708', 'OPC', 'umorzono', '2016-09-22 00:00:00', 'udzielenie koncesji', ''),
-(51, 35545, 'AZELIS POLAND SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ', 'Poznań', 'ul. Św. Michała 43', '61-119', 'Poznań', 'wielkopolskie', '7821018157', 'OPC', 'umorzono', '2020-11-04 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(52, 35545, 'AZELIS POLAND SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ', 'Poznań', 'ul. Św. Michała 43', '61-119', 'Poznań', 'wielkopolskie', '7821018157', 'OPZ', 'umorzono', '2020-11-04 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(53, 2936, 'BALTCHEM S.A. Zakłady Chemiczne w Szczecinie', 'Szczecin', 'ul. Ks. Kujota 9', '70-605', 'Szczecin', 'zachodniopomorskie', '8510205604', 'WPC', 'umorzono', '2016-09-14 00:00:00', 'udzielenie koncesji', ''),
-(54, 24602, 'Bartosz Majewski', 'Błaszki', 'pl. Sulwińskiego 11', '98-235', 'Błaszki', 'łódzkie', '8272273905', 'OPC', 'umorzono', '2022-06-09 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(55, 17261, 'BD Sp. z o.o.', 'Wrocław', 'ul. Fabryczna 16b', '53-609', 'Wrocław', 'dolnośląskie', '8971746522', 'WCC', 'umorzono', '2021-05-26 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(56, 26813, 'Beta Kraft sp. z o.o. oddział w Polsce', 'Legnica', 'Wileńska 9C/3', '59-220', 'Legnica', 'dolnośląskie', '1010007613', 'OPC', 'umorzono', '2016-10-03 00:00:00', 'udzielenie koncesji', ''),
-(57, 26342, 'BGK COMPANY Sp. z o.o.', 'Bydgoszcz', 'ul. Gdańska 140', '85-021', 'Bydgoszcz', 'kujawsko-pomorskie', '5542931134', 'OPC', 'umorzono', '2016-09-23 00:00:00', 'udzielenie koncesji', ''),
-(58, 64362, 'Biesterfeld Chemia Specjalna Sp. z o.o.', 'Warszawa', 'ul. Klonowa 4', '00-591', 'Warszawa', 'mazowieckie', '1080000065', 'OPC', 'umorzono', '2020-11-10 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(59, 16458, 'Bink Sp. z o.o.', 'Kazimierz Dolny', 'Celejów 71/1', '24-120', 'Kazimierz Dolny', 'lubelskie', '7162799161', 'OPC', 'umorzono', '2016-09-15 00:00:00', 'udzielenie koncesji', ''),
-(60, 69832, 'BIO-ENERGIA Przemysław, Małgorzata, Tomasz, Beata Hemmerling spółka cywilna', 'Chodzież', 'ul. Wichrowe Wzgórze 9', '64-800', 'Rataje', 'wielkopolskie', '6070089155', 'WEE', 'umorzono', '2022-02-07 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(61, 69146, 'Blue Grid Gas & Power SA', 'Kifissia Attiki', 'Leoforos Kifissias 227', '14561', 'Kifissia Attiki', '', '', 'OGZ', 'umorzono', '2022-01-13 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(62, 69146, 'Blue Grid Gas & Power SA', 'Kifissia Attiki', 'Leoforos Kifissias 227', '14561', 'Kifissia Attiki', '', '', 'OPG', 'umorzono', '2022-01-13 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(63, 64685, 'BOBRYK PALIWA sp. z o.o. sp. k', 'Szczecin', 'ul. Milczańska 31D', '70-107', 'Szczecin', 'zachodniopomorskie', '9552468125', 'OPC', 'umorzono', '2019-06-25 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(64, 1775, 'BOSSOIL Spółka z ograniczona odpowiedzialnością', 'Warszawa', 'ul. Pasterska 10', '01-976', 'Warszawa', 'mazowieckie', '1182133605', 'WPC', 'umorzono', '2021-10-28 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(65, 7494, 'Bożena Bielińska Zakład Gazownictwa Bezprzewodowego AUTO-GAZ Bożena Bielińska', 'Rzepin', 'ul. Bohaterów Radzieckich dz. nr 156/15', '69-110', 'Rzepin', 'lubuskie', '5980000944', 'OPC', 'umorzono', '2016-09-27 00:00:00', 'udzielenie koncesji', ''),
-(66, 12621, 'Bożena Włodkowska, Krzysztof Włodkowski NADZIEJA s.c.', 'Przasnysz', 'Romany Sebory 6', '06-300', 'Przasnysz', 'mazowieckie', '7611080440', 'OPC', 'umorzono', '2016-09-16 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(67, 31817, 'Brzeski Solar Group 2 Spółka z ograniczoną odpowiedzialnością', 'Łódź', 'ul. Franciszkańska 112A / 1', '91-845', 'Łódź', 'łódzkie', '8672239869', 'WEE', 'umorzono', '2017-03-21 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(68, 69675, 'Bunkering Sp. z o.o.', 'Gdańsk', 'ul. Jana Heweliusza 11 / 819', '80-890', 'Gdańsk', 'pomorskie', '7123374032', 'OPG', 'umorzono', '2022-12-02 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(69, 68627, 'Business Energia Spółka z ograniczoną odpowiedzialnością Spółka komandytowa', 'Kraków', 'ul. Św. Filipa 23 / 4', '31-150', 'Kraków', 'małopolskie', '9442259165', 'OEE', 'umorzono', '2021-11-26 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(70, 28246, 'Capital COM Sp. z o.o.', 'Warszawa', 'ul. Biała 4 lok. 81', '00-895', 'Warszawa', 'mazowieckie', '5272757139', 'OPC', 'umorzono', '2016-10-06 00:00:00', 'udzielenie koncesji', ''),
-(71, 65013, 'Casablanka s.c. Elżbieta i Tomasz Miazga', 'Wadowice Górne', 'Zgórsko 7B', '39-308', 'Zgórsko', 'podkarpackie', '8172194804', 'OPC', 'umorzono', '2020-02-28 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(72, 19653, 'CEDROB S.A.', 'Ciechanów', 'Ujazdówek 2A', '06-400', 'Ujazdówek', 'mazowieckie', '5660004455', 'WEE', 'umorzono', '2023-06-13 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(73, 28031, 'CENTER&OIL Sp. z o.o.', 'Rembertów', 'ul. Spokojna 3A', '05-555', 'Rembertów', 'mazowieckie', '1231297006', 'OPC', 'umorzono', '2016-09-26 00:00:00', 'udzielenie koncesji', ''),
-(74, 321, 'Ciepłownie Miejskie Sp. z o.o.', 'Węgorzewo', 'ul. B.Chrobrego 4', '11-600', 'Węgorzewo', 'warmińsko-mazurskie', '8451004895', 'PCC', 'umorzono', '2019-11-13 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(75, 26321, 'CIME WIND Krzanowice III Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Złota 59', '00-120', 'Warszawa', 'mazowieckie', '8943037819', 'OEE', 'umorzono', '2020-12-14 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(76, 68800, 'CIRCLE K IRELAND FUEL TRADING LIMITED (Spółka z ograniczoną odpowiedzialnością) Oddział w Polsce', 'Irlandia', 'Dublin 4', 'D04Y016', 'Irlandia', '', '1080023824', 'OPZ', 'umorzono', '2022-08-29 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(77, 70591, 'Citronex Energy Sp. z o.o.', 'Zgorzelec', 'Słowiańska 13', '59-900', 'Zgorzelec', 'dolnośląskie', '6152046407', 'OPC', 'umorzono', '2023-03-09 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(78, 70591, 'Citronex Energy Sp. z o.o.', 'Zgorzelec', 'Słowiańska 13', '59-900', 'Zgorzelec', 'dolnośląskie', '6152046407', 'OPZ', 'umorzono', '2023-03-09 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(79, 13947, 'CLIP Ubezpieczenia Spółka z ograniczoną odpowiedzialnością', 'Swarzędz', 'ul. Rabowicka 65', '62-020', 'Jasin', 'wielkopolskie', '7773012115', 'OPG', 'umorzono', '2017-12-04 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(80, 65398, 'CMC OIL Sp. z o.o.', 'Gnojnik', 'Gnojnik 528', '32-864', 'Gnojnik', 'małopolskie', '8691996057', 'OPC', 'umorzono', '2020-03-25 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(81, 30519, 'COMFORT OIL Sp. z o.o.', 'Olszyna', 'Olszyna 54H', '63-500', 'Olszyna', 'wielkopolskie', '5140336837', 'OPC', 'umorzono', '2016-10-04 00:00:00', 'udzielenie koncesji', ''),
-(82, 55753, 'D&J SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ \\BUDOWNICTWO\\ SPÓŁKA KOMANDYTOWA', 'Międzyrzecz', 'Zakaszewskiego 1A', '66-300', 'Międzyrzecz', 'lubuskie', '5961746565', 'OPC', 'umorzono', '2018-12-17 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(83, 16120, 'DAKO s.c. Jarosław Rękas, Piotr Osuch', 'Łazińska', 'Piotrawin 95B', '24-335', 'Łaziska', 'lubelskie', '7171384778', 'WEE', 'umorzono', '2018-03-20 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(84, 30646, 'DAMF Gaz Spółka z ograniczoną odpowiedzialnością', 'Płock', 'ul. Padlewskiego 18C', '09-402', 'Płock', 'mazowieckie', '7743227561', 'OPG', 'umorzono', '2017-02-07 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(85, 63996, 'DANMAR PLUS spółka z ograniczoną odpowiedzialnością', 'Nowy Sącz', 'ul. 1 Brygady 4/5', '33-300', 'Nowy Sącz', 'małopolskie', '7343560357', 'OPC', 'umorzono', '2018-11-06 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(86, 12610, 'Dex-Trans Robert Pach', 'Smyków', 'Gliniany Las 22', '26-212', 'Smyków', 'świętokrzyskie', '6581607585', 'OPC', 'umorzono', '2016-09-06 00:00:00', 'udzielenie koncesji', ''),
-(87, 28258, 'DIA COMPANY Sp. z o.o.', 'Warszawa', 'ul. Biała 4/81', '00-895', 'Warszawa', 'mazowieckie', '5272757091', 'OPC', 'umorzono', '2016-09-28 00:00:00', 'udzielenie koncesji', ''),
-(88, 30529, 'DIESEL PRO PLUS Sp. z o.o.', 'Ciechanów', 'ul. Ogrodowa 22', '06-100', 'Ciechanów', 'mazowieckie', '5662014357', 'OPC', 'umorzono', '2016-09-23 00:00:00', 'udzielenie koncesji', ''),
-(89, 70541, 'DOM Sp. z o.o. Sp. k.', 'Nidzica', 'Żeromskiego 12', '13-100', 'Nidzica', 'warmińsko-mazurskie', '7460000092', 'OPC', 'umorzono', '2022-11-09 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(90, 26933, 'DR SERVICE Sp. z o.o.', 'Poznań', 'ul. Naramowicka 2B, lok. 17', '61-611', 'Poznań', 'wielkopolskie', '9721260569', 'OPC', 'umorzono', '2016-09-22 00:00:00', 'udzielenie koncesji', ''),
-(91, 69175, 'Dwory Artur Zaczkowski', 'Sochaczew', 'ul. 15 Sierpnia 22', '96-500', 'Sochaczew', 'mazowieckie', '8370009316', 'WEE', 'umorzono', '2021-02-05 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(92, 66111, 'Dystrybucja Gazu Usługi Transportowe Magdalena Rycharska', 'Płock', 'Stefanii Kamińskiej 3', '09-400', 'Płock', 'mazowieckie', '7743019673', 'OPC', 'umorzono', '2022-02-25 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(93, 70521, 'EC DYSTRYBUCJA Sp. z o.o.', 'Chełm', 'ul. Fabryczna 6', '22-100', 'Chełm', 'lubelskie', '5632448097', 'PCC', 'umorzono', '2022-12-12 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(94, 70521, 'EC DYSTRYBUCJA Sp. z o.o.', 'Chełm', 'ul. Fabryczna 6', '22-100', 'Chełm', 'lubelskie', '5632448097', 'WCC', 'umorzono', '2022-12-12 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(95, 31813, 'ECO Logistyka sp. z o.o.', 'Opole', 'ul. Harcerska 15', '45-118', 'Opole', 'opolskie', '7542980665', 'OEE', 'umorzono', '2019-11-21 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(96, 3393, 'Ecol sp. z o.o.', 'Rybnik', 'ul. Podmiejska 71A', '44-207', 'Rybnik', 'śląskie', '6420000576', 'OPC', 'umorzono', '2019-08-29 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(97, 30619, 'ECOSYSTEM II Elżbieta Świrepo', 'Stargard', 'ul. Elizy Orzeszkowej 11 / 1', '73-110', 'Stargard', 'zachodniopomorskie', '8541759887', 'OPC', 'umorzono', '2016-09-23 00:00:00', 'udzielenie koncesji', ''),
-(98, 28313, 'Eco-Therm Energy sp. z o.o.', 'Bytom', 'ul. Dworska 6', '41-902', 'Bytom', 'śląskie', '6263020859', 'OPC', 'umorzono', '2016-09-05 00:00:00', 'udzielenie koncesji', ''),
-(99, 64266, 'Ecowolt 18 sp. z o.o.', 'Katowice', 'ul. Uniwersytecka 13', '40-007', 'Katowice', 'śląskie', '6322019600', 'WEE', 'umorzono', '2021-11-02 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(100, 28424, 'EDF Energia Spółka Akcyjna', 'Warszawa', 'ul. Złota 59', '00-120', 'Warszawa', 'mazowieckie', '5252662128', 'WCC', 'umorzono', '2016-09-13 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(101, 28424, 'EDF Energia Spółka Akcyjna', 'Warszawa', 'ul. Złota 59', '00-120', 'Warszawa', 'mazowieckie', '5252662128', 'WEE', 'umorzono', '2016-09-13 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(102, 15108, 'Edmund Kwidzyński EKOD Hurtownia Artykułów Przemysłowych', 'Gdynia', 'ul. Hutnicza 36', '81-061', 'Gdynia', 'pomorskie', '5860055670', 'OPC', 'umorzono', '2016-09-21 00:00:00', 'udzielenie koncesji', ''),
-(103, 70671, 'EE DYSTRYBUCJA SP. ZO.O.', 'Warszawa', 'ul. Wiślana 8 / 7', '00-317', 'Warszawa', 'mazowieckie', '5252900510', 'DEE', 'umorzono', '2023-12-29 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(104, 70401, 'EGGS PRODUCT SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ', 'RAWICZ', 'ul. ŻYLICE 35A', '63-900', 'ŻYLICE', 'wielkopolskie', '6991954352', 'OPG', 'umorzono', '2022-11-28 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(105, 24105, 'EIP Spółka Akcyjna', 'Warszawa', 'ul. Dąbrowskiego 30', '02-561', 'Warszawa', 'mazowieckie', '9512193283', 'WEE', 'umorzono', '2018-08-10 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(106, 27967, 'EKO-EN 2 Sp. z o.o.', 'Warszawa', 'Rondo Daszyńskiego 1', '00-843', 'Warszawa', 'mazowieckie', '6040106558', 'DEE', 'umorzono', '2019-06-12 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(107, 19071, 'Ekomax sp. z o.o.', 'Gliwice', 'ul. Pszczyńska 206', '44-100', 'Gliwice', 'śląskie', '6312299348', 'OPC', 'umorzono', '2019-01-21 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(108, 4411, 'Ekopol Górnośląski Holding SA', 'Piekary Śląskie', 'ul. Ludwika Waryńskiego 20', '41-940', 'Piekary Śląskie', 'śląskie', '6270012803', 'WPC', 'umorzono', '2022-04-06 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(109, 1078, 'EKO-TRANS Sp z o.o.', 'Jastrzębie-Zdrój', 'ul. Energetyków 38', '44-335', 'Jastrzębie-Zdrój', 'śląskie', '6332018571', 'OPZ', 'umorzono', '2020-10-29 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(110, 23590, 'Ekovoltis Spółka z ograniczoną odpowiedzialnością', 'Kielce', 'Al. Solidarności 36', '25-323', 'Kielce', 'świętokrzyskie', '8992751675', 'OPC', 'umorzono', '2023-03-09 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(111, 23590, 'Ekovoltis Spółka z ograniczoną odpowiedzialnością', 'Kielce', 'Al. Solidarności 36', '25-323', 'Kielce', 'świętokrzyskie', '8992751675', 'OPZ', 'umorzono', '2023-03-09 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(112, 24601, 'ELBA Irena Bełtowska', 'Przedbórz', 'ul. Koncecka 50', '97-570', 'Przedbórz', 'łódzkie', '6561368025', 'OPC', 'umorzono', '2022-09-26 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(113, 30615, 'ELBA Spółka z ograniczoną odpowiedzialnością', 'Lublin', 'ul. Grażyny 1 lok. 7', '20-605', 'Lublin', 'lubelskie', '7123317011', 'OPC', 'umorzono', '2016-09-15 00:00:00', 'udzielenie koncesji', ''),
-(114, 7496, 'Elektrobud Mika Jan sp.j.', 'Piasek', 'ul. Leśna 40', '43-211', 'Czarków', 'śląskie', '6380000617', 'OPC', 'umorzono', '2018-07-04 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(115, 18925, 'Elektrociepłownia Stalowa Wola S.A.', 'Stalowa Wola', 'ul. Energetyków 13', '37-450', 'Stalowa Wola', 'podkarpackie', '8652527861', 'OPG', 'umorzono', '2019-06-27 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(116, 33312, 'ELEKTROSKANDIA POLSKa Sp. z o.o.', 'Poznań', 'Dziadoszańska 10', '61-248', 'Poznań', 'wielkopolskie', '7820032899', 'OPC', 'umorzono', '2017-03-27 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(117, 65073, 'Elektrownia PV 12 Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Tytusa Chałubińskiego 8', '00-613', 'Warszawa', 'mazowieckie', '5213818997', 'WEE', 'umorzono', '2021-11-22 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(118, 65071, 'Elektrownia PV 23 Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Tytusa Chałubińskiego 8', '00-613', 'Warszawa', 'mazowieckie', '5213840896', 'WEE', 'umorzono', '2021-11-19 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(119, 65146, 'Elektrownia PV 24 Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Tytusa Chałubińskiego 8', '00-613', 'Warszawa', 'mazowieckie', '5213840933', 'WEE', 'umorzono', '2021-11-22 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(120, 64397, 'Elektrownia Słoneczna Szkaradowo Spółka z ograniczoną odpowiedzialnością', 'Poznań', 'ul. Kopanina 52', '60-105', 'Poznań', 'wielkopolskie', '6991959645', 'WEE', 'umorzono', '2021-12-16 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(121, 26831, 'Elen Gas Sp. z o.o.', 'Warszawa', 'ul. M. Kopernika 5 / 7', '00-367', 'Warszawa', 'mazowieckie', '9721250269', 'OPZ', 'umorzono', '2016-09-12 00:00:00', 'udzielenie koncesji', ''),
-(122, 23090, 'Eltel Networks Energetyka Spółka Akcyjna', 'Olsztyn', 'Gutkowo 81D', '11-041', 'Olsztyn', 'warmińsko-mazurskie', '7390102722', 'WEE', 'umorzono', '2018-07-24 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(123, 28245, 'ELVO TRADE Sp. z o.o.', 'Warszawa', 'ul. Elektoralna 13 lok. 121', '00-137', 'Warszawa', 'mazowieckie', '5252644194', 'OPC', 'umorzono', '2016-09-28 00:00:00', 'udzielenie koncesji', ''),
-(124, 39640, 'EL-W sp. z o.o.', 'Katowice', 'ul. Warszawska 40 / 2 A', '40-008', 'Katowice', 'śląskie', '5732841138', 'WEE', 'umorzono', '2021-11-02 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(125, 14283, 'Elżbieta Demianiuk F.H.U. ELDAMEX', 'Siedlce', 'Pruszyn - Pieńki 25A', '08-110', 'Siedlce', 'mazowieckie', '8211005984', 'OPC', 'umorzono', '2016-09-29 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(126, 5944, 'Elżbieta Śmiech PHU AUTO-GAZ', 'Halinów', 'Wielgolas Brzeziński 7B', '05-074', 'Wielgolas Brzeziński', 'mazowieckie', '8221977648', 'OPC', 'umorzono', '2023-05-09 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(127, 64357, 'EMOTIS Sp z o.o.', 'Warszawa', 'Flisa 4', '02-247', 'Warszawa', 'mazowieckie', '7743235856', 'OPC', 'umorzono', '2019-12-31 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(128, 59842, 'ENERGIA EXPRESS Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'Brzeska 2', '03-737', 'Warszawa', 'mazowieckie', '1132954292', 'OPG', 'umorzono', '2022-11-10 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(129, 59913, 'ENERGIA POMORZE Spółka z ograniczoną odpowiedzialnością', 'Koszalin', 'ul. Maja 18 / 4', '75-800', 'Koszalin', 'zachodniopomorskie', '6692545054', 'OEE', 'umorzono', '2021-11-26 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(130, 64892, 'Energia Wrzesina Spółka z ograniczoną odpowiedzialnością', 'Olsztyn', 'ul. Górna 5', '10-040', 'Olsztyn', 'warmińsko-mazurskie', '7393921030', 'WEE', 'umorzono', '2021-12-13 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(131, 26245, 'Energy Gate Europe Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Nowy Świat 7 / 15', '00-496', 'Warszawa', 'mazowieckie', '5272728936', 'OPZ', 'umorzono', '2016-09-14 00:00:00', 'udzielenie koncesji', ''),
-(132, 28046, 'Enix Commodieties s.r.o.', 'Praga 2,Czechy', 'Mala Stepanska 1929/9', '12000', 'Praga 2,Czechy', '', '', 'OPG', 'umorzono', '2016-11-07 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(133, 28020, 'Enstatus Polska Sp. z o.o.', 'Warszawa', 'ul. Biała 4/81', '00-478', 'Warszawa', 'mazowieckie', '5272753762', 'OPC', 'umorzono', '2016-09-29 00:00:00', 'udzielenie koncesji', ''),
-(134, 28020, 'Enstatus Polska Sp. z o.o.', 'Warszawa', 'ul. Biała 4/81', '00-478', 'Warszawa', 'mazowieckie', '5272753762', 'OPZ', 'umorzono', '2016-09-29 00:00:00', 'udzielenie koncesji', ''),
-(135, 26540, 'EURO-BUD Robert Kornacki', 'Płock', 'ul. Dworcowa 31/1', '09-402', 'Płock', 'mazowieckie', '8371506040', 'OPC', 'umorzono', '2016-09-20 00:00:00', 'udzielenie koncesji', ''),
-(136, 32169, 'Expres Gaz Tomasz Kwiatkowski', 'Skarżysko Kościelne', 'ul. Południowa 19', '26-115', 'Skarżysko-Kościelne', 'świętokrzyskie', '6631343497', 'OPC', 'umorzono', '2017-03-07 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(137, 28220, 'F.H.U. \\MRO-POL\\ Zdzisław Mroszczyk', 'Przeworsk', 'Studzian 47', '37-200', 'Przeworsk', 'podkarpackie', '7941241828', 'OPC', 'umorzono', '2016-09-19 00:00:00', 'udzielenie koncesji', ''),
-(138, 66191, 'F.U.H. JANUSZ Sp. z o.o. Sp. k.', 'Nowa Karczma', 'Zielona Wieś 12B', '83-404', 'Zielona Wieś', 'pomorskie', '5911707698', 'OPC', 'umorzono', '2022-09-26 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(139, 46454, 'Fabryka Artykułów Turystycznych i Sportowych Polsport Spółka z ograniczoną odpowiedzialnością', 'Góra Kalwaria', 'ul. Kard. S. Wyszyńskiego 13', '05-530', 'Góra Kalwaria', 'mazowieckie', '1230004083', 'OEE', 'umorzono', '2021-07-28 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(140, 28085, 'Famex.PL sp. z o.o.', 'Rybnik', 'ul. Popiela 13', '44-200', 'Rybnik', 'śląskie', '6423194084', 'OPC', 'umorzono', '2016-09-08 00:00:00', 'udzielenie koncesji', ''),
-(141, 26701, 'Farma Wiatrowa Chojny 3 Sp. z o.o.', 'Warszawa', 'Hoża 86/410', '00-682', 'Warszawa', 'mazowieckie', '5342494516', 'WEE', 'umorzono', '2019-06-10 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(142, 30587, 'FHU \\GRAF\\ Ryszard Kułyniak', 'Nowogard', 'Wierzbięcin 25', '72-200', 'Nowogard', 'zachodniopomorskie', '8561520557', 'OPC', 'umorzono', '2016-09-23 00:00:00', 'udzielenie koncesji', ''),
-(143, 30597, 'FHU Aneta Piterek', 'Wągrowiec', 'Rogozińska 47', '62-100', 'Wągrowiec', 'wielkopolskie', '6070051483', 'OPC', 'umorzono', '2016-09-23 00:00:00', 'udzielenie koncesji', ''),
-(144, 5001, 'FHU JARBUD Gęborys Sławomir', 'Jarosław', 'ul. Jana Pawła II 42', '37-500', 'Jarosław', 'podkarpackie', '9211812998', 'OPC', 'umorzono', '2016-09-14 00:00:00', 'udzielenie koncesji', ''),
-(145, 66027, 'FHU Piotr Adamczyk', 'Sadlno', 'Boguszyczki 33', '62-619', 'Sadlno', 'wielkopolskie', '6652381505', 'OPC', 'umorzono', '2020-05-07 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(146, 28401, 'Firma Gastronomiczno-Handlowo-Usługowa LUKA Joanna Iskra', 'Lidzbark Warmiński', 'Markajmy 1', '11-100', 'Lidzbark Warmiński', 'warmińsko-mazurskie', '7432026240', 'OPC', 'umorzono', '2016-09-19 00:00:00', 'udzielenie koncesji', ''),
-(147, 26410, 'Firma Handlowo-Usługowa Adam Krupa', 'Łabędzie', 'Łabędzie 17', '98-290', 'Łabędzie', 'łódzkie', '8272198919', 'OPC', 'umorzono', '2016-10-06 00:00:00', 'udzielenie koncesji', ''),
-(148, 23143, 'Firma Handlowo-Usługowa Stacja Paliw Dołhobrody Katarzyna Chomiczuk', 'Hanna', 'Dołhobrody 110/4', '22-220', 'Hanna', 'lubelskie', '5651357823', 'OPC', 'umorzono', '2016-09-23 00:00:00', 'udzielenie koncesji', ''),
-(149, 64402, 'Firma Handlowo-Usługowa VIVA Hubert Zaleśkiewicz', 'Rypin', 'Rusinowo 35', '87-500', 'Rypin', 'kujawsko-pomorskie', '8921482417', 'OPC', 'umorzono', '2020-06-01 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(150, 12101, 'Firma Mechaniczno Handlowo Usługowa \\DIAGNOSTYK\\ Jan Kabała', 'Lidzbark Warmiński', 'ul. Żytnia 8', '11-100', 'Lidzbark Warmiński', 'warmińsko-mazurskie', '7430001000', 'WEE', 'umorzono', '2017-04-06 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(151, 18196, 'Firma Usługowa \\BŁYSK\\ Spółka z ograniczoną odpowiedzialnością', 'Dębica', 'ul. Gawrzyłowska 37', '39-200', 'Dębica', 'podkarpackie', '8722027320', 'OPC', 'umorzono', '2016-09-16 00:00:00', 'udzielenie koncesji', ''),
-(152, 26580, 'FORDEVIND Dorota Walendziak Cezariusz Walendziak S.C.', 'Warszawa', 'ul. Jana Nowaka-Jeziorańskiego 51/116', '03-982', 'Warszawa', 'mazowieckie', '9562310667', 'WEE', 'umorzono', '2017-09-12 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(153, 15123, 'FORZA Grzegorz Filipowicz', 'Reszel', 'Robawy 4', '11-440', 'Reszel', 'warmińsko-mazurskie', '7421525057', 'OPC', 'umorzono', '2017-05-12 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(154, 23780, 'FOTOBAU Spółka z ograniczoną odpowiedzialnością', 'Tomaszów Mazowiecki', 'ul. Norberta Barlickiego 2', '97-200', 'Tomaszów Mazowiecki', 'łódzkie', '7732472015', 'WEE', 'umorzono', '2021-11-23 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(155, 23780, 'FOTOBAU Spółka z ograniczoną odpowiedzialnością', 'Tomaszów Mazowiecki', 'ul. Norberta Barlickiego 2', '97-200', 'Tomaszów Mazowiecki', 'łódzkie', '7732472015', 'WEE', 'umorzono', '2021-06-08 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(156, 70822, 'FOTOSUN Spółka z ograniczoną odpowiedzialnością Spółka komandytowa', 'Dębica', 'ul. 23 Sierpnia 30', '39-200', 'Dębica', 'podkarpackie', '8722426250', 'OEE', 'umorzono', '2023-05-29 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(157, 71363, 'Fotowoltaika Pionka 1 Spółka z ograniczoną odpowiedzialnością', 'Glinojeck', 'Zygmuntowo 20A', '06-450', 'Zygmuntowo', 'mazowieckie', '5662030095', 'WEE', 'umorzono', '2023-10-12 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(158, 64440, 'Freepoint Commodities B.V.', 'Maastricht-Airport, Netherlands', 'Europalaan 24', '6199AB', 'Maastricht-Airport', '', '', 'OGZ', 'umorzono', '2021-04-07 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(159, 64440, 'Freepoint Commodities B.V.', 'Maastricht-Airport, Netherlands', 'Europalaan 24', '6199AB', 'Maastricht-Airport', '', '', 'OPG', 'umorzono', '2021-04-07 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(160, 28125, 'FUELPORT Sp. z o.o.', 'Rogowiec', 'ul. Instalacyjna 14', '97-427', 'Rogowiec', 'łódzkie', '7692224965', 'OPC', 'umorzono', '2016-10-06 00:00:00', 'udzielenie koncesji', ''),
-(161, 30481, 'G&O ENERGY Sp. z o.o.', 'Warszawa', 'ul. Williama Heerleina Lindleya 16 lok. 305', '00-013', 'Warszawa', 'mazowieckie', '7010549642', 'OPC', 'umorzono', '2016-09-23 00:00:00', 'udzielenie koncesji', ''),
-(162, 28124, 'G4 OIL Sp. z o.o.', 'Warszawa', 'ul. Złota 7 lok. 18', '00-019', 'Warszawa', 'mazowieckie', '5252621052', 'OPC', 'umorzono', '2016-09-27 00:00:00', 'udzielenie koncesji', ''),
-(163, 69807, 'GAC SP. Z O.O.', 'NIEPOŁOMICE', 'ul. NA TAMIE 1 A', '32-005', 'NIEPOŁOMICE', 'małopolskie', '6832115900', 'OPC', 'umorzono', '2022-04-28 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(164, 22184, 'Gartex sp. z o.o.', 'Chorzów', 'ul. Wolności 40/15', '41-500', 'Chorzów', 'śląskie', '7831687345', 'OPC', 'umorzono', '2016-10-04 00:00:00', 'udzielenie koncesji', ''),
-(165, 70624, 'Gasileo sp. z o.o.', 'Kraków', 'ul. Wincentego Wodzinowskiego 6', '31-309', 'Kraków', 'małopolskie', '6751765410', 'OPC', 'umorzono', '2023-10-16 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(166, 64915, 'GASKAM, KAMILLA CHLEBOWSKA', 'MALBORK', 'ROLNICZA 9A / 8', '82-200', 'MALBORK', 'pomorskie', '5791389869', 'OPC', 'umorzono', '2021-06-01 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(167, 28228, 'Gaspro Invest Sp. z o.o.', 'Poznań', 'ul. Człuchowska 8A', '60-434', 'Poznań', 'wielkopolskie', '7811924345', 'OPC', 'umorzono', '2016-09-29 00:00:00', 'udzielenie koncesji', ''),
-(168, 28228, 'Gaspro Invest Sp. z o.o.', 'Poznań', 'ul. Człuchowska 8A', '60-434', 'Poznań', 'wielkopolskie', '7811924345', 'OPZ', 'umorzono', '2016-09-29 00:00:00', 'udzielenie koncesji', ''),
-(169, 69090, 'Gaz na Chmielnej Marek Skowyra', 'Hrubieszów', 'Dziekanów 121/3 / 8', '22-500', 'Dziekanów', 'lubelskie', '9191385121', 'OPC', 'umorzono', '2021-05-14 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(170, 30683, 'Geris-Trans Sp.z o.o.', 'Chrzanów', 'ul. Henryka Sienkiewicza 11', '32-500', 'Chrzanów', 'małopolskie', '6282267259', 'OPC', 'umorzono', '2017-07-27 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(171, 43032, 'GI City Therm Sp. z o.o.', 'Warszawa', 'Plac Konesera 8', '03-736', 'Warszawa', 'mazowieckie', '1132912543', 'OEE', 'umorzono', '2022-04-29 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(172, 32084, 'GISolution Bartosz Kulawik', 'Kraków', 'Zbrojarzy 26', '30-412', 'Kraków', 'małopolskie', '7642381183', 'OPC', 'umorzono', '2017-06-29 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(173, 49512, 'Global Marketing Holding Sp. z o.o. Sp. k.', 'Katowice', 'Staromiejska 6/10D', '40-013', 'Katowice', 'śląskie', '9542759513', 'OEE', 'umorzono', '2018-10-25 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(174, 49512, 'Global Marketing Holding Sp. z o.o. Sp. k.', 'Katowice', 'Staromiejska 6/10D', '40-013', 'Katowice', 'śląskie', '9542759513', 'OPG', 'umorzono', '2018-10-24 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(175, 28009, 'Gminna Spółdzielnia \\Samopomoc Chłopska\\', 'Gorzyce', 'ul. Rybnicka 10', '44-350', 'Gorzyce', 'śląskie', '6470509359', 'OPC', 'umorzono', '2019-06-24 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(176, 28009, 'Gminna Spółdzielnia \\Samopomoc Chłopska\\', 'Gorzyce', 'ul. Rybnicka 10', '44-350', 'Gorzyce', 'śląskie', '6470509359', 'OPC', 'umorzono', '2022-08-03 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(177, 64517, 'Gminna Spółdzielnia \\Samopomoc Chłopska\\', 'Baranowo', 'ul. Długa 11', '06-320', 'Baranowo', 'mazowieckie', '7610002260', 'OPC', 'umorzono', '2019-04-09 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(178, 64264, 'Gminne Przedsiębiorstwo Oczyszczania Spółka z ograniczoną odpowiedzialnością', 'Bogatynia', 'ul. Kilińskiego 17', '59-920', 'Bogatynia', 'dolnośląskie', '6151557318', 'OEE', 'umorzono', '2019-06-01 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(179, 28275, 'GRADOMID Sp. z o.o.', 'Bydgoszcz', 'ul. Gajowa 102 lok. 3', '85-717', 'Bydgoszcz', 'kujawsko-pomorskie', '5542938337', 'OPC', 'umorzono', '2016-09-08 00:00:00', 'udzielenie koncesji', ''),
-(180, 22859, 'Green Investment Spółka z ograniczoną odpowiedzialnością', 'Warszawa', '-', '03-741', 'Warszawa', 'mazowieckie', '1182003009', 'OEE', 'umorzono', '2019-02-28 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(181, 69792, 'Grupa Producentów Amazis sp. z o.o.', 'Kostrzyn', 'ul. Wierzbowa 8', '62-025', 'Trzek', 'wielkopolskie', '9721201934', 'WEE', 'umorzono', '2022-02-07 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(182, 5002, 'Grzegorz Gęborys TOMGAZ', 'Tomaszów Lubelski', 'ul. Żołnierzy Września 2', '22-600', 'Tomaszów Lubelski', 'lubelskie', '9211824027', 'OPC', 'umorzono', '2016-09-13 00:00:00', 'udzielenie koncesji', ''),
-(183, 70190, 'GS OMB Spółka z ograniczoną odpowiedzialnością', 'Nowe Skalmierzyce', 'ul. 29 Grudnia 2C', '63-460', 'Nowe Skalmierzyce', 'wielkopolskie', '6222435049', 'WEE', 'umorzono', '2022-10-20 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(184, 32190, 'HANDEL USŁUGI Katarzyna Żaczek', 'Zduny', 'Nowe Zduny 3', '99-440', 'Nowe Zduny', 'łódzkie', '8341163322', 'OPC', 'umorzono', '2017-09-01 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(185, 30524, 'HANTOM Jacek Majewski', 'Świebodzin', 'ul. Wojska Polskiego 10', '66-200', 'Świebodzin', 'lubuskie', '9271069540', 'OPC', 'umorzono', '2016-09-30 00:00:00', 'udzielenie koncesji', ''),
-(186, 46460, 'Hendi Polska Sp. z o.o.', 'Gądki', 'ul. Magazynowa 5', '62-023', 'Gądki', 'wielkopolskie', '7792270344', 'OPC', 'umorzono', '2018-01-10 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(187, 46460, 'Hendi Polska Sp. z o.o.', 'Gądki', 'ul. Magazynowa 5', '62-023', 'Gądki', 'wielkopolskie', '7792270344', 'OPC', 'umorzono', '2019-01-15 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(188, 30518, 'HIT OIL Sp. z o.o.', 'Olszyna', 'Olszyna 54H', '63-500', 'Olszyna', 'wielkopolskie', '5140336783', 'OPC', 'umorzono', '2016-10-04 00:00:00', 'udzielenie koncesji', ''),
-(189, 28167, 'Hit-Gas Sp. z o.o.', 'Kleszczów', 'Czyżów 12f', '97-410', 'Kleszczów', 'łódzkie', '7692223701', 'OPC', 'umorzono', '2016-09-27 00:00:00', 'udzielenie koncesji', ''),
-(190, 69139, 'IEN OPERATOR Sp. z o.o.', '02-691', 'ul. Kolady 3', '02-691', 'Warszawa', 'mazowieckie', '9462648119', 'DEE', 'umorzono', '2022-03-15 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(191, 26895, 'INEON OLSZOWIAK Sp.k.', 'Ostrów Wlkp.', 'ul. Józefa Piłsudskiego 29', '63-400', 'Ostrów Wielkopolski', 'wielkopolskie', '6222782756', 'OGZ', 'umorzono', '2016-10-21 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(192, 26895, 'INEON OLSZOWIAK Sp.k.', 'Ostrów Wlkp.', 'ul. Józefa Piłsudskiego 29', '63-400', 'Ostrów Wielkopolski', 'wielkopolskie', '6222782756', 'OGZ', 'umorzono', '2022-06-30 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(193, 30576, 'INMA Sp. z o.o. Sp. komandytowa', 'Kraków', 'Os. Bohaterów Września 1E/8', '31-620', 'Kraków', 'małopolskie', '6783152142', 'OPC', 'umorzono', '2016-09-16 00:00:00', 'udzielenie koncesji', ''),
-(194, 28326, 'INTER-FLOTA PALIWA Sp. z o.o.', 'Warszawa', 'ul. Powstańców Śląskich 103 / 1', '01-335', 'Warszawa', 'mazowieckie', '5372633632', 'OPC', 'umorzono', '2016-09-14 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(195, 3135, 'INTERGAS Sp. z o.o.', 'Szczecin', 'Tczewska 32', '70-850', 'Szczecin', 'zachodniopomorskie', '8520009448', 'MPC', 'umorzono', '2018-08-23 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(196, 22751, 'INVEST GLOBAL Spółka z ograniczoną odpowiedzialnością', 'Legnica', 'al. Rzeczypospolitej 116', '59-220', 'Legnica', 'dolnośląskie', '6912456827', 'MPC', 'umorzono', '2016-09-12 00:00:00', 'udzielenie koncesji', ''),
-(197, 4381, 'ISD Huta Częstochowa Sp. z o. o.', 'Częstochowa', 'ul. Kucelińska 22', '42-207', 'Częstochowa', 'śląskie', '9491827824', 'OEE', 'umorzono', '2020-01-23 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(198, 24904, 'ITAXI.PL Spółka z ograniczoną odpowiedzialnością', 'Białystok', 'ul. Legionowa 28', '15-281', 'Białystok', 'podlaskie', '1182053355', 'OPC', 'umorzono', '2018-03-27 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(199, 24163, 'IVONE Sp. z o.o.', 'Warszawa', 'Al. Ujazdowskie 26 / 96', '00-478', 'Warszawa', 'mazowieckie', '8992756678', 'OPZ', 'umorzono', '2019-03-21 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(200, 34444, 'IWMAR ENERGIA Sp. z o.o.', 'Brzeziny', 'Marianów Kołacki 10 A / 1', '95-060', 'Marianów Kołacki', 'łódzkie', '8371818839', 'WEE', 'umorzono', '2021-11-19 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(201, 30523, 'JACK-SPEED Sp. z o.o.', 'Nowa Sól', 'ul. Przyszłości 1', '67-100', 'Nowa Sól', 'lubuskie', '9252105418', 'OPC', 'umorzono', '2016-09-23 00:00:00', 'udzielenie koncesji', ''),
-(202, 32047, 'JANVEST - Spółka akcyjna', 'Toruń', 'ul. Kosynierów Kościuszkowskich 13', '87-100', 'Toruń', 'kujawsko-pomorskie', '8792289806', 'WEE', 'umorzono', '2017-03-15 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(203, 24231, 'JDC SPÓŁKA Z OGRANICZONA ODPOWIEDZIALNOSCIA', 'Warszawa', 'ul. Koszykowa 54', '00-675', 'Warszawa', 'mazowieckie', '5242771057', 'OPZ', 'umorzono', '2016-09-12 00:00:00', 'udzielenie koncesji', ''),
-(204, 6520, 'Jerzy Meyer MEYERGAZ', 'Człuchów', 'ul. Traugutta 9B', '77-300', 'Człuchów', 'pomorskie', '8431320736', 'OPC', 'umorzono', '2018-05-17 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(205, 67467, 'Jet-Pol Corporation sp. z o.o.', 'Mysłowice', 'ul. Katowicka 72', '41-400', 'Mysłowice', 'śląskie', '2220916038', 'OPC', 'umorzono', '2022-03-22 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(206, 26800, 'JFK SPARK Sp. z o.o.', 'Poznań', 'ul. Lutycka 95', '60-478', 'Poznań', 'wielkopolskie', '7811917902', 'OPC', 'umorzono', '2016-09-28 00:00:00', 'udzielenie koncesji', ''),
-(207, 28322, 'JM Jakub Mrowca', 'Nowy Sącz', 'ul. Chruślicka 11', '33-300', 'Nowy Sącz', 'małopolskie', '7342972276', 'OPC', 'umorzono', '2017-10-24 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(208, 28322, 'JM Jakub Mrowca', 'Nowy Sącz', 'ul. Chruślicka 11', '33-300', 'Nowy Sącz', 'małopolskie', '7342972276', 'OPC', 'umorzono', '2016-09-16 00:00:00', 'udzielenie koncesji', ''),
-(209, 7234, 'Joanna Mariańczyk-Przybysz, Damian Przybysz FRACHTER-LOGISTIC s.c.', 'Zgierz', 'ul. Koszarowa 6', '95-100', 'Zgierz', 'łódzkie', '7321966282', 'OPC', 'umorzono', '2016-10-05 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(210, 21912, 'JRM Sp. z o.o. Sp. komandytowa', 'Piastów', 'Al. Jerozolimskie 338', '05-820', 'Piastów', 'mazowieckie', '5342482571', 'OPC', 'umorzono', '2018-03-21 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(211, 53655, 'JUMA SP. Z O.O.', 'Maków Mazowiecki', 'Przemysłowa 9', '06-200', 'Maków Mazowiecki', 'mazowieckie', '7571429504', 'PCC', 'umorzono', '2023-12-14 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(212, 43153, 'K GAZ Sp. z o.o.', 'Pomiechówek', 'Stanisławowo 90H', '05-180', 'Stanisławowo', 'mazowieckie', '5242815872', 'OPC', 'umorzono', '2024-02-26 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(213, 14490, 'Kapusta Artur \\ART-GAZ\\ Firma Handlowa', 'Radom', 'ul. Idalińska 11b / 1', '26-600', 'Radom', 'mazowieckie', '9481476754', 'OPC', 'umorzono', '2017-12-08 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(214, 16104, 'Karol Sobolewski Przedsiębiorstwo Handlowo-Usługowe \\SASS\\', 'Grajewo', 'ul. Wojska Polskiego 42', '19-200', 'Grajewo', 'podlaskie', '7191071574', 'OPC', 'umorzono', '2016-09-15 00:00:00', 'udzielenie koncesji', ''),
-(215, 23608, 'KEA SYSTEM Sp. z o.o.', 'Bielany', 'ul. Słoneczna 5', '08-311', 'Bielany', 'mazowieckie', '8231657514', 'MPC', 'umorzono', '2018-04-23 00:00:00', 'udzielenie koncesji (*)', 'art. 105 § 2 kpa'),
-(216, 28335, 'KJ PROJEKT Sp. z o.o.', 'Poznań', 'ul. Człuchowska 8A', '60-434', 'Poznań', 'wielkopolskie', '7811928596', 'OPC', 'umorzono', '2016-10-07 00:00:00', 'udzielenie koncesji', ''),
-(217, 30520, 'KK PRZEDSIĘBIORSTWO HANDLOWE Sp. z o.o.', 'Poznań', 'Naramowicka 2B lok 17', '61-611', 'Poznań', 'wielkopolskie', '9721264001', 'OPC', 'umorzono', '2016-09-26 00:00:00', 'udzielenie koncesji', ''),
-(218, 23080, 'KL Sp. z o.o.', 'Olszanka', 'Pogorzela 78', '49-332', 'Olszanka', 'opolskie', '7471893751', 'OPC', 'umorzono', '2016-09-23 00:00:00', 'udzielenie koncesji', ''),
-(219, 64651, 'KMB-TYRANS Krzysztof Bończyk', 'Łowicz', 'Kopernika 22', '99-400', 'Łowicz', 'mazowieckie', '8341234418', 'OPC', 'umorzono', '2019-05-14 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(220, 70288, 'KOWAL Marek Kowal', 'Włodawa', 'ul. Ogrodowa 11', '22-200', 'Włodawa', 'lubelskie', '5651145498', 'WEE', 'umorzono', '2023-02-17 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(221, 67461, 'KRUK PALIWA spółka z ograniczoną odpowiedzialnością', 'Wałcz', 'ul. Budowlanych 95', '78-600', 'Wałcz', 'zachodniopomorskie', '7651699217', 'OPC', 'umorzono', '2020-09-25 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(222, 13536, 'Krypton Sp. z o.o.', 'Siedlce', 'ul. Wałowa 6', '08-110', 'Siedlce', 'mazowieckie', '6030018255', 'WPC', 'umorzono', '2018-08-30 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(223, 30649, 'Krzysztof Kawecki', 'Kożuchów', 'ul. Mickiewicza 12', '67-120', 'Kożuchów', 'lubuskie', '9252006202', 'OPC', 'umorzono', '2016-09-27 00:00:00', 'udzielenie koncesji', ''),
-(224, 30627, 'Krzysztof Kłaput PETROLTECH', 'Lgota', 'ul. Podgórska 22', '34-103', 'Lgota', 'małopolskie', '5512240454', 'OPC', 'umorzono', '2016-09-16 00:00:00', 'udzielenie koncesji', ''),
-(225, 5056, 'Krzysztof Kozak, Beata Madejek Koma LPG s.c.', 'Lublin', 'Al. Unii Lubelskiej 1', '20-108', 'Lublin', 'lubelskie', '9462163770', 'OPC', 'umorzono', '2017-03-02 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(226, 5056, 'Krzysztof Kozak, Beata Madejek Koma LPG s.c.', 'Lublin', 'Al. Unii Lubelskiej 1', '20-108', 'Lublin', 'lubelskie', '9462163770', 'OPC', 'umorzono', '2016-09-14 00:00:00', 'udzielenie koncesji', ''),
-(227, 23253, 'KZL sp. z o.o.', 'Kłomnice', 'ul. Częstochowska 13', '42-270', 'Kłomnice', 'śląskie', '5732847135', 'OPC', 'umorzono', '2020-06-24 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(228, 24301, 'Leszek Malicki', 'Poznań', 'ul. Szczepankowo 52a', '61-311', 'Poznań', 'wielkopolskie', '7822302570', 'WEE', 'umorzono', '2017-12-28 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(229, 16186, 'Leszek Orłowski LAZO - dystrybucja gazu płynnego', 'Jedwabne', 'ul. Cmentarna 20', '18-420', 'Jedwabne', 'podlaskie', '7181820494', 'OPC', 'umorzono', '2016-09-19 00:00:00', 'udzielenie koncesji', ''),
-(230, 30609, 'LEXPET Sp. z o.o.', 'Łódź', 'ul. Zgierska 110/120 lok. 137', '91-303', 'Łódź', 'łódzkie', '7262657578', 'OPC', 'umorzono', '2016-10-06 00:00:00', 'udzielenie koncesji', ''),
-(231, 28174, 'Lions Wood sp. z o.o.', 'Dzierżoniów', 'Diorowska 28', '58-200', 'Dzierżoniów', 'dolnośląskie', '8822123804', 'OPC', 'umorzono', '2016-09-27 00:00:00', 'udzielenie koncesji', ''),
-(232, 68628, 'Liquind 24/7 GmbH', 'Berlin', 'Schlüterstraβe 39', '10629', 'Berlin', '', '', 'OPG', 'umorzono', '2021-05-20 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa');
+(1, 24576, '\\Agro\\ Piotr Sacher', 'Kotulin', 'ul. Skalna 3', '44-180', 'Kotulin', 'śląskie', '9690924820', 'OPC', 'umorzono', '2016-09-08', 'udzielenie koncesji', ''),
+(2, 5147, '\\Air Products\\ Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Komitetu Obrony Robotników 48', '02-146', 'Warszawa', 'mazowieckie', '5260213184', 'OPC', 'umorzono', '2016-09-23', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(3, 20009, '\\ALMAR\\ Sp. z o.o.', 'Rozprza', 'Mierzyn 147A', '97-340', 'Mierzyn', 'łódzkie', '7712829483', 'OPC', 'umorzono', '2017-03-14', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(4, 30586, '\\ARGAZ.EU\\ Sp. z o.o.', 'Tarczyn', 'ul. Piekarnicza 16', '05-555', 'Jeziorzany', 'mazowieckie', '1231312711', 'OPC', 'umorzono', '2016-09-26', 'udzielenie koncesji', ''),
+(5, 28130, '\\AUTOPART\\ Spółka Akcyjna', 'Mielec', 'ul. Kwiatkowskiego 2A', '39-300', 'Mielec', 'podkarpackie', '8171752627', 'OEE', 'umorzono', '2020-04-08', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(6, 18982, '\\BIO NATURA\\ Jacek Mazurek', 'Radzanów', 'Wróblewo 40', '06-540', 'Radzanów', 'mazowieckie', '5252174044', 'WEE', 'umorzono', '2018-08-01', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(7, 19176, '\\Bit-Energia\\ Spółka z ograniczoną odpowiedzialnością', 'Gdynia', 'ul. Granatowa 11', '81-113', 'Gdynia', 'pomorskie', '9581612984', 'WEE', 'umorzono', '2022-01-19', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(8, 26756, '\\ECCO-ENERGIA Sp. z o.o. Sp. k.', 'Płock', 'ul. Franciszka Zubrzyckiego 11', '09-410', 'Płock', 'mazowieckie', '7743226047', 'WEE', 'umorzono', '2019-06-11', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(9, 14315, '\\GRAWAL\\ DZIUBAK I WSPÓLNICY Sp. j.', 'Józefów', 'Powstańców Warszawy 4C', '05-420', 'Józefów', 'mazowieckie', '9512063416', 'OPC', 'umorzono', '2022-06-02', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(10, 28442, '\\JURMAR\\ JERZY STRZAŁKOWSKI, MARCIN STRZAŁKOWSKI Sp. j.', 'Jedlińsk', 'ul. Warszawska 1a', '26-660', 'Wielogóra', 'mazowieckie', '7962971087', 'OPC', 'umorzono', '2018-05-08', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(11, 28442, '\\JURMAR\\ JERZY STRZAŁKOWSKI, MARCIN STRZAŁKOWSKI Sp. j.', 'Jedlińsk', 'ul. Warszawska 1a', '26-660', 'Wielogóra', 'mazowieckie', '7962971087', 'OPC', 'umorzono', '2016-09-12', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(12, 17631, '\\K.A.R.\\ sp. z o.o.', 'Piekary Śląskie', 'ul. Parkowa 15', '41-940', 'Piekary Śląskie', 'śląskie', '6452386159', 'OPC', 'umorzono', '2016-09-06', 'udzielenie koncesji', ''),
+(13, 17643, '\\Komplet\\ sp. z o.o.', 'Ożarowice', 'ul. Transportowa 2', '42-625', 'Pyrzowice', 'śląskie', '6351010814', 'OPC', 'umorzono', '2016-09-05', 'udzielenie koncesji', ''),
+(14, 64558, '\\MASZT\\ spółka z ograniczoną odpowiedzialnością', 'Gorzów Wlkp.', 'Fredry 10', '66-400', 'Gorzów Wlkp.', 'lubuskie', '7821989458', 'OPC', 'umorzono', '2019-04-05', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(15, 8548, '\\NAG -PAL Stacja paliw i usługi transportowe Naklicki Zbigniew 22-375 Izbica, ul. Lubelska 105; Stacja paliw Nowa Kolonia Horyszów Polski 48, 22-424 Sitno', 'Izbica', 'ul. Lubelska 105', '22-375', 'Izbica', 'lubelskie', '9221002108', 'OPC', 'umorzono', '2018-12-11', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(16, 17616, '\\Persona\\ sp. z o.o.', 'Knurów', 'ul. Szpitalna 42', '44-190', 'Knurów', 'śląskie', '7822155749', 'OPC', 'umorzono', '2016-09-06', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(17, 65047, '\\POLPOWER\\ spółka z ograniczoną odpowiedzialnością', 'Jelenia Góra', 'ul. Obrońców Pokoju 2B', '58-500', 'Jelenia Góra', 'dolnośląskie', '6722021227', 'WEE', 'umorzono', '2020-03-17', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(18, 30610, '\\SILLA BIS\\ Klaudia Guzara', 'Niedźwiedź', 'Niedźwiedź 265', '34-735', 'Niedźwiedź', 'małopolskie', '7372048426', 'OPC', 'umorzono', '2016-09-15', 'udzielenie koncesji', ''),
+(19, 24356, '\\TLS\\ Spółka z ograniczoną odpowiedzialnością', 'Repki', 'Kobylany Górne 7', '08-307', 'Repki', 'mazowieckie', '8231658376', 'OPC', 'umorzono', '2016-09-27', 'udzielenie koncesji', ''),
+(20, 14232, '\\UNI-LUX\\ Sp. z o.o.', 'Warszawa', 'ul. Jana Kazimierza 61', '01-267', 'Warszawa', 'mazowieckie', '5261347573', 'OPC', 'umorzono', '2016-09-26', 'udzielenie koncesji', ''),
+(21, 24477, 'A&A Firma Handlowo-Usługowa s.c. SUŚLIK&SUŚLIK', 'Alweria', 'ul. Krakowska 57A', '32-566', 'Alwernia', 'małopolskie', '6751025535', 'OPC', 'umorzono', '2018-04-23', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(22, 30476, 'A.T.- OIL sp. z o.o.', 'Lipinki', 'Rozdziele 70', '38-305', 'Lipinki', 'małopolskie', '6793098763', 'OPC', 'umorzono', '2016-09-14', 'udzielenie koncesji', ''),
+(23, 28407, 'AB GLOBAL COMMERCE Sp. z o.o.', 'Poznań', 'ul. Lechicka 59A lok 6', '61-695', 'Poznań', 'wielkopolskie', '9721264432', 'OPC', 'umorzono', '2016-09-19', 'udzielenie koncesji', ''),
+(24, 16065, 'Adam Grzegorczyk ADAMEX', 'Nałęczów 3', 'Moszna', '24-150', 'Nałęczów 3', 'lubelskie', '7121046246', 'OPC', 'umorzono', '2016-09-23', 'udzielenie koncesji', ''),
+(25, 11888, 'Adam Krukowski Elektrownia Wodna', 'Sułów', 'Tworyczów x', '22-448', 'Sułów', 'lubelskie', '9221061973', 'WEE', 'umorzono', '2018-03-13', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(26, 64884, 'AEC spółka z ograniczoną odpowiedzialnością', 'Andrychów', 'ul. Stefana Batorego 24', '34-120', 'Andrychów', 'małopolskie', '5512641420', 'DPG', 'umorzono', '2020-12-02', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(27, 66196, 'AG RECYKLING Sp. z o.o.', 'Wolsztyn', 'Wolsztyńska 5', '64-200', 'Wroniawy', 'wielkopolskie', '9231693798', 'OPC', 'umorzono', '2021-08-04', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(28, 14323, 'Agata Pełka Stacja Paliw Płynnych i Gazowych Agata Pełka', 'Emów', 'ul. Wiązowska 1a', '05-462', 'Emów', 'mazowieckie', '9521920989', 'OPC', 'umorzono', '2018-12-10', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(29, 28409, 'Agencja Celna TERMINUS E.S.Grygatowicz-Szumowska Sp.j.', 'Bialystok', 'ul. Octowa 26', '15-399', 'Bialystok', 'podlaskie', '5422749941', 'OPZ', 'umorzono', '2016-09-12', 'udzielenie koncesji', ''),
+(30, 24884, 'ALANDA Dobosz Krzysztof', 'Mińsk Mazowiecki', 'Karolina ul.Główna 108', '05-300', 'Mińsk Mazowiecki', 'mazowieckie', '8221117101', 'OPC', 'umorzono', '2017-01-19', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(31, 30667, 'ALFA + Iwona Kamińska', 'Gronówek', 'Gronówek 17', '98-270', 'Gronówek', 'łódzkie', '8271326947', 'OPC', 'umorzono', '2016-09-19', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(32, 28096, 'ALTER CT sp. z o.o.', 'Stalowa Wola', 'ul. Przemysłowa 11', '37-450', 'Stalowa Wola', 'podkarpackie', '8652562662', 'OPC', 'umorzono', '2016-09-14', 'udzielenie koncesji', ''),
+(33, 28045, 'AMAR Andrzej Marczewski', 'Gdańsk', 'ul. gen. Józefa Hallera 126', '80-416', 'Gdańsk', 'pomorskie', '5840002162', 'OPC', 'umorzono', '2016-09-09', 'udzielenie koncesji', ''),
+(34, 30503, 'Apexim AB Paliwa III Sp. z o.o.', 'Zielona Góra', 'ul. Lwowska 25', '65-225', 'Zielona Góra', 'lubuskie', '9731031735', 'OPC', 'umorzono', '2016-09-23', 'udzielenie koncesji', ''),
+(35, 69406, 'APLEONA POLSKA Sp. z o.o.', 'Warszawa', 'Krakowiaków 36', '02-255', 'Warszawa', 'mazowieckie', '7792088473', 'OPC', 'umorzono', '2022-03-18', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(36, 22014, 'ARCTURUS - BUNKER Sp. z o.o.', 'Szczecin', 'ul. Hryniewieckiego 1', '70-606', 'Szczecin', 'zachodniopomorskie', '9552268099', 'MPC', 'umorzono', '2018-03-30', 'udzielenie koncesji (*)', 'art. 105 § 1 kpa'),
+(37, 4887, 'Arcturus Sp. z o.o.', 'Szczecin', 'ul. Hryniewieckiego 1', '70-606', 'Szczecin', 'zachodniopomorskie', '5832840931', 'MPC', 'umorzono', '2019-03-08', 'udzielenie koncesji (*)', 'art. 105 § 1 kpa'),
+(38, 28345, 'ARVIKA VK Sp. z o.o.', 'Warszawa', 'ul. Budy nr 5', '01-466', 'Warszawa', 'mazowieckie', '5223050948', 'OPC', 'umorzono', '2016-10-10', 'udzielenie koncesji', ''),
+(39, 16999, 'ASS-CARO Sp. z o.o.', 'Parzęczew', 'ul. Łęczycka 39', '95-045', 'Parzęczew', 'łódzkie', '7322138529', 'OPC', 'umorzono', '2016-10-13', 'udzielenie koncesji', ''),
+(40, 69208, 'AS-TRANS Agnieszka Śpiewak', 'Kobyłka', 'Krechowiecka 48', '05-230', 'Kobyłka', 'mazowieckie', '5361222925', 'OPC', 'umorzono', '2021-09-17', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(41, 28030, 'ATAMAN Zbigniew Dobrzyński', 'Tomaszów Mazowiecki', 'ul. Maksymiliana Kolbe 2/4 lok 36', '97-200', 'Tomaszów Mazowiecki', 'łódzkie', '7731654352', 'OPC', 'umorzono', '2016-09-27', 'udzielenie koncesji', ''),
+(42, 19744, 'AUTO GAZ USŁUGI TRANSPORTOWE MARIUSZ BRZEZIŃSKI', 'Warszawa', 'ul. Kobielska 9 lok. 31', '04-359', 'Warszawa', 'mazowieckie', '6581825460', 'OPC', 'umorzono', '2022-02-28', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(43, 20967, 'AUTO KABZIŃSKI Sp. z o.o.', 'Piotrków Trybunalski', 'ul. Sulejowska 45', '97-300', 'Piotrków Tryb.', 'łódzkie', '7712881785', 'OPC', 'umorzono', '2020-10-27', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(44, 30598, 'Auto-Mix Krystian Klapuch', 'Skrzyszów', 'ul. Dębowa 14B', '44-348', 'Skrzyszów', 'śląskie', '6471106764', 'OPC', 'umorzono', '2016-09-07', 'udzielenie koncesji', ''),
+(45, 69328, 'AUTO-ORUNIA SPÓŁKA JAWNA J.MAZURCZAK-ROMPA, A.PAZDZIOREK', 'Gdańsk', 'ul. Starogardzka 22', '80-058', 'Gdańsk', 'pomorskie', '5830069377', 'OPC', 'umorzono', '2021-03-25', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(46, 28287, 'AUTOPOL Sp. z o.o.', 'Zbąszyń', 'ul. Prandoty 195', '64-360', 'Prandoty', 'wielkopolskie', '7882002877', 'OPC', 'umorzono', '2016-09-20', 'udzielenie koncesji', ''),
+(47, 26651, 'AVATR Sp. z o.o.', 'Poznań', 'ul. Toruńska 22', '61-045', 'Poznań', 'wielkopolskie', '7822591373', 'OPC', 'umorzono', '2016-10-11', 'udzielenie koncesji', ''),
+(48, 30452, 'Avneo Wrocław sp. z o.o.', 'Wrocław', 'Hugona Kołłątaja 29/30 / 61', '50-004', 'Wrocław', 'dolnośląskie', '8971823033', 'OPC', 'umorzono', '2016-10-03', 'udzielenie koncesji', ''),
+(49, 54700, 'AXAN ENERGY Sp. z o.o. Sp. komandytowa', 'Bielany', 'ul. Siedlecka 1', '08-311', 'Bielany', 'mazowieckie', '8231663041', 'MPC', 'umorzono', '2018-11-13', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(50, 26932, 'AZ SERVICE Sp. z o.o.', 'Poznań', 'ul. Sielska 17A', '60-129', 'Poznań', 'wielkopolskie', '7792438708', 'OPC', 'umorzono', '2016-09-22', 'udzielenie koncesji', ''),
+(51, 35545, 'AZELIS POLAND SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ', 'Poznań', 'ul. Św. Michała 43', '61-119', 'Poznań', 'wielkopolskie', '7821018157', 'OPC', 'umorzono', '2020-11-04', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(52, 35545, 'AZELIS POLAND SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ', 'Poznań', 'ul. Św. Michała 43', '61-119', 'Poznań', 'wielkopolskie', '7821018157', 'OPZ', 'umorzono', '2020-11-04', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(53, 2936, 'BALTCHEM S.A. Zakłady Chemiczne w Szczecinie', 'Szczecin', 'ul. Ks. Kujota 9', '70-605', 'Szczecin', 'zachodniopomorskie', '8510205604', 'WPC', 'umorzono', '2016-09-14', 'udzielenie koncesji', ''),
+(54, 24602, 'Bartosz Majewski', 'Błaszki', 'pl. Sulwińskiego 11', '98-235', 'Błaszki', 'łódzkie', '8272273905', 'OPC', 'umorzono', '2022-06-09', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(55, 17261, 'BD Sp. z o.o.', 'Wrocław', 'ul. Fabryczna 16b', '53-609', 'Wrocław', 'dolnośląskie', '8971746522', 'WCC', 'umorzono', '2021-05-26', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(56, 26813, 'Beta Kraft sp. z o.o. oddział w Polsce', 'Legnica', 'Wileńska 9C/3', '59-220', 'Legnica', 'dolnośląskie', '1010007613', 'OPC', 'umorzono', '2016-10-03', 'udzielenie koncesji', ''),
+(57, 26342, 'BGK COMPANY Sp. z o.o.', 'Bydgoszcz', 'ul. Gdańska 140', '85-021', 'Bydgoszcz', 'kujawsko-pomorskie', '5542931134', 'OPC', 'umorzono', '2016-09-23', 'udzielenie koncesji', ''),
+(58, 64362, 'Biesterfeld Chemia Specjalna Sp. z o.o.', 'Warszawa', 'ul. Klonowa 4', '00-591', 'Warszawa', 'mazowieckie', '1080000065', 'OPC', 'umorzono', '2020-11-10', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(59, 16458, 'Bink Sp. z o.o.', 'Kazimierz Dolny', 'Celejów 71/1', '24-120', 'Kazimierz Dolny', 'lubelskie', '7162799161', 'OPC', 'umorzono', '2016-09-15', 'udzielenie koncesji', ''),
+(60, 69832, 'BIO-ENERGIA Przemysław, Małgorzata, Tomasz, Beata Hemmerling spółka cywilna', 'Chodzież', 'ul. Wichrowe Wzgórze 9', '64-800', 'Rataje', 'wielkopolskie', '6070089155', 'WEE', 'umorzono', '2022-02-07', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(61, 69146, 'Blue Grid Gas & Power SA', 'Kifissia Attiki', 'Leoforos Kifissias 227', '14561', 'Kifissia Attiki', '', '', 'OGZ', 'umorzono', '2022-01-13', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(62, 69146, 'Blue Grid Gas & Power SA', 'Kifissia Attiki', 'Leoforos Kifissias 227', '14561', 'Kifissia Attiki', '', '', 'OPG', 'umorzono', '2022-01-13', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(63, 64685, 'BOBRYK PALIWA sp. z o.o. sp. k', 'Szczecin', 'ul. Milczańska 31D', '70-107', 'Szczecin', 'zachodniopomorskie', '9552468125', 'OPC', 'umorzono', '2019-06-25', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(64, 1775, 'BOSSOIL Spółka z ograniczona odpowiedzialnością', 'Warszawa', 'ul. Pasterska 10', '01-976', 'Warszawa', 'mazowieckie', '1182133605', 'WPC', 'umorzono', '2021-10-28', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(65, 7494, 'Bożena Bielińska Zakład Gazownictwa Bezprzewodowego AUTO-GAZ Bożena Bielińska', 'Rzepin', 'ul. Bohaterów Radzieckich dz. nr 156/15', '69-110', 'Rzepin', 'lubuskie', '5980000944', 'OPC', 'umorzono', '2016-09-27', 'udzielenie koncesji', ''),
+(66, 12621, 'Bożena Włodkowska, Krzysztof Włodkowski NADZIEJA s.c.', 'Przasnysz', 'Romany Sebory 6', '06-300', 'Przasnysz', 'mazowieckie', '7611080440', 'OPC', 'umorzono', '2016-09-16', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(67, 31817, 'Brzeski Solar Group 2 Spółka z ograniczoną odpowiedzialnością', 'Łódź', 'ul. Franciszkańska 112A / 1', '91-845', 'Łódź', 'łódzkie', '8672239869', 'WEE', 'umorzono', '2017-03-21', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(68, 69675, 'Bunkering Sp. z o.o.', 'Gdańsk', 'ul. Jana Heweliusza 11 / 819', '80-890', 'Gdańsk', 'pomorskie', '7123374032', 'OPG', 'umorzono', '2022-12-02', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(69, 68627, 'Business Energia Spółka z ograniczoną odpowiedzialnością Spółka komandytowa', 'Kraków', 'ul. Św. Filipa 23 / 4', '31-150', 'Kraków', 'małopolskie', '9442259165', 'OEE', 'umorzono', '2021-11-26', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(70, 28246, 'Capital COM Sp. z o.o.', 'Warszawa', 'ul. Biała 4 lok. 81', '00-895', 'Warszawa', 'mazowieckie', '5272757139', 'OPC', 'umorzono', '2016-10-06', 'udzielenie koncesji', ''),
+(71, 65013, 'Casablanka s.c. Elżbieta i Tomasz Miazga', 'Wadowice Górne', 'Zgórsko 7B', '39-308', 'Zgórsko', 'podkarpackie', '8172194804', 'OPC', 'umorzono', '2020-02-28', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(72, 19653, 'CEDROB S.A.', 'Ciechanów', 'Ujazdówek 2A', '06-400', 'Ujazdówek', 'mazowieckie', '5660004455', 'WEE', 'umorzono', '2023-06-13', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(73, 28031, 'CENTER&OIL Sp. z o.o.', 'Rembertów', 'ul. Spokojna 3A', '05-555', 'Rembertów', 'mazowieckie', '1231297006', 'OPC', 'umorzono', '2016-09-26', 'udzielenie koncesji', ''),
+(74, 321, 'Ciepłownie Miejskie Sp. z o.o.', 'Węgorzewo', 'ul. B.Chrobrego 4', '11-600', 'Węgorzewo', 'warmińsko-mazurskie', '8451004895', 'PCC', 'umorzono', '2019-11-13', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(75, 26321, 'CIME WIND Krzanowice III Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Złota 59', '00-120', 'Warszawa', 'mazowieckie', '8943037819', 'OEE', 'umorzono', '2020-12-14', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(76, 68800, 'CIRCLE K IRELAND FUEL TRADING LIMITED (Spółka z ograniczoną odpowiedzialnością) Oddział w Polsce', 'Irlandia', 'Dublin 4', 'D04Y016', 'Irlandia', '', '1080023824', 'OPZ', 'umorzono', '2022-08-29', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(77, 70591, 'Citronex Energy Sp. z o.o.', 'Zgorzelec', 'Słowiańska 13', '59-900', 'Zgorzelec', 'dolnośląskie', '6152046407', 'OPC', 'umorzono', '2023-03-09', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(78, 70591, 'Citronex Energy Sp. z o.o.', 'Zgorzelec', 'Słowiańska 13', '59-900', 'Zgorzelec', 'dolnośląskie', '6152046407', 'OPZ', 'umorzono', '2023-03-09', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(79, 13947, 'CLIP Ubezpieczenia Spółka z ograniczoną odpowiedzialnością', 'Swarzędz', 'ul. Rabowicka 65', '62-020', 'Jasin', 'wielkopolskie', '7773012115', 'OPG', 'umorzono', '2017-12-04', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(80, 65398, 'CMC OIL Sp. z o.o.', 'Gnojnik', 'Gnojnik 528', '32-864', 'Gnojnik', 'małopolskie', '8691996057', 'OPC', 'umorzono', '2020-03-25', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(81, 30519, 'COMFORT OIL Sp. z o.o.', 'Olszyna', 'Olszyna 54H', '63-500', 'Olszyna', 'wielkopolskie', '5140336837', 'OPC', 'umorzono', '2016-10-04', 'udzielenie koncesji', ''),
+(82, 55753, 'D&J SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ \\BUDOWNICTWO\\ SPÓŁKA KOMANDYTOWA', 'Międzyrzecz', 'Zakaszewskiego 1A', '66-300', 'Międzyrzecz', 'lubuskie', '5961746565', 'OPC', 'umorzono', '2018-12-17', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(83, 16120, 'DAKO s.c. Jarosław Rękas, Piotr Osuch', 'Łazińska', 'Piotrawin 95B', '24-335', 'Łaziska', 'lubelskie', '7171384778', 'WEE', 'umorzono', '2018-03-20', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(84, 30646, 'DAMF Gaz Spółka z ograniczoną odpowiedzialnością', 'Płock', 'ul. Padlewskiego 18C', '09-402', 'Płock', 'mazowieckie', '7743227561', 'OPG', 'umorzono', '2017-02-07', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(85, 63996, 'DANMAR PLUS spółka z ograniczoną odpowiedzialnością', 'Nowy Sącz', 'ul. 1 Brygady 4/5', '33-300', 'Nowy Sącz', 'małopolskie', '7343560357', 'OPC', 'umorzono', '2018-11-06', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(86, 12610, 'Dex-Trans Robert Pach', 'Smyków', 'Gliniany Las 22', '26-212', 'Smyków', 'świętokrzyskie', '6581607585', 'OPC', 'umorzono', '2016-09-06', 'udzielenie koncesji', ''),
+(87, 28258, 'DIA COMPANY Sp. z o.o.', 'Warszawa', 'ul. Biała 4/81', '00-895', 'Warszawa', 'mazowieckie', '5272757091', 'OPC', 'umorzono', '2016-09-28', 'udzielenie koncesji', ''),
+(88, 30529, 'DIESEL PRO PLUS Sp. z o.o.', 'Ciechanów', 'ul. Ogrodowa 22', '06-100', 'Ciechanów', 'mazowieckie', '5662014357', 'OPC', 'umorzono', '2016-09-23', 'udzielenie koncesji', ''),
+(89, 70541, 'DOM Sp. z o.o. Sp. k.', 'Nidzica', 'Żeromskiego 12', '13-100', 'Nidzica', 'warmińsko-mazurskie', '7460000092', 'OPC', 'umorzono', '2022-11-09', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(90, 26933, 'DR SERVICE Sp. z o.o.', 'Poznań', 'ul. Naramowicka 2B, lok. 17', '61-611', 'Poznań', 'wielkopolskie', '9721260569', 'OPC', 'umorzono', '2016-09-22', 'udzielenie koncesji', ''),
+(91, 69175, 'Dwory Artur Zaczkowski', 'Sochaczew', 'ul. 15 Sierpnia 22', '96-500', 'Sochaczew', 'mazowieckie', '8370009316', 'WEE', 'umorzono', '2021-02-05', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(92, 66111, 'Dystrybucja Gazu Usługi Transportowe Magdalena Rycharska', 'Płock', 'Stefanii Kamińskiej 3', '09-400', 'Płock', 'mazowieckie', '7743019673', 'OPC', 'umorzono', '2022-02-25', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(93, 70521, 'EC DYSTRYBUCJA Sp. z o.o.', 'Chełm', 'ul. Fabryczna 6', '22-100', 'Chełm', 'lubelskie', '5632448097', 'PCC', 'umorzono', '2022-12-12', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(94, 70521, 'EC DYSTRYBUCJA Sp. z o.o.', 'Chełm', 'ul. Fabryczna 6', '22-100', 'Chełm', 'lubelskie', '5632448097', 'WCC', 'umorzono', '2022-12-12', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(95, 31813, 'ECO Logistyka sp. z o.o.', 'Opole', 'ul. Harcerska 15', '45-118', 'Opole', 'opolskie', '7542980665', 'OEE', 'umorzono', '2019-11-21', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(96, 3393, 'Ecol sp. z o.o.', 'Rybnik', 'ul. Podmiejska 71A', '44-207', 'Rybnik', 'śląskie', '6420000576', 'OPC', 'umorzono', '2019-08-29', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(97, 30619, 'ECOSYSTEM II Elżbieta Świrepo', 'Stargard', 'ul. Elizy Orzeszkowej 11 / 1', '73-110', 'Stargard', 'zachodniopomorskie', '8541759887', 'OPC', 'umorzono', '2016-09-23', 'udzielenie koncesji', ''),
+(98, 28313, 'Eco-Therm Energy sp. z o.o.', 'Bytom', 'ul. Dworska 6', '41-902', 'Bytom', 'śląskie', '6263020859', 'OPC', 'umorzono', '2016-09-05', 'udzielenie koncesji', ''),
+(99, 64266, 'Ecowolt 18 sp. z o.o.', 'Katowice', 'ul. Uniwersytecka 13', '40-007', 'Katowice', 'śląskie', '6322019600', 'WEE', 'umorzono', '2021-11-02', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(100, 28424, 'EDF Energia Spółka Akcyjna', 'Warszawa', 'ul. Złota 59', '00-120', 'Warszawa', 'mazowieckie', '5252662128', 'WCC', 'umorzono', '2016-09-13', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(101, 28424, 'EDF Energia Spółka Akcyjna', 'Warszawa', 'ul. Złota 59', '00-120', 'Warszawa', 'mazowieckie', '5252662128', 'WEE', 'umorzono', '2016-09-13', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(102, 15108, 'Edmund Kwidzyński EKOD Hurtownia Artykułów Przemysłowych', 'Gdynia', 'ul. Hutnicza 36', '81-061', 'Gdynia', 'pomorskie', '5860055670', 'OPC', 'umorzono', '2016-09-21', 'udzielenie koncesji', ''),
+(103, 70671, 'EE DYSTRYBUCJA SP. ZO.O.', 'Warszawa', 'ul. Wiślana 8 / 7', '00-317', 'Warszawa', 'mazowieckie', '5252900510', 'DEE', 'umorzono', '2023-12-29', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(104, 70401, 'EGGS PRODUCT SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ', 'RAWICZ', 'ul. ŻYLICE 35A', '63-900', 'ŻYLICE', 'wielkopolskie', '6991954352', 'OPG', 'umorzono', '2022-11-28', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(105, 24105, 'EIP Spółka Akcyjna', 'Warszawa', 'ul. Dąbrowskiego 30', '02-561', 'Warszawa', 'mazowieckie', '9512193283', 'WEE', 'umorzono', '2018-08-10', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(106, 27967, 'EKO-EN 2 Sp. z o.o.', 'Warszawa', 'Rondo Daszyńskiego 1', '00-843', 'Warszawa', 'mazowieckie', '6040106558', 'DEE', 'umorzono', '2019-06-12', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(107, 19071, 'Ekomax sp. z o.o.', 'Gliwice', 'ul. Pszczyńska 206', '44-100', 'Gliwice', 'śląskie', '6312299348', 'OPC', 'umorzono', '2019-01-21', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(108, 4411, 'Ekopol Górnośląski Holding SA', 'Piekary Śląskie', 'ul. Ludwika Waryńskiego 20', '41-940', 'Piekary Śląskie', 'śląskie', '6270012803', 'WPC', 'umorzono', '2022-04-06', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(109, 1078, 'EKO-TRANS Sp z o.o.', 'Jastrzębie-Zdrój', 'ul. Energetyków 38', '44-335', 'Jastrzębie-Zdrój', 'śląskie', '6332018571', 'OPZ', 'umorzono', '2020-10-29', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(110, 23590, 'Ekovoltis Spółka z ograniczoną odpowiedzialnością', 'Kielce', 'Al. Solidarności 36', '25-323', 'Kielce', 'świętokrzyskie', '8992751675', 'OPC', 'umorzono', '2023-03-09', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(111, 23590, 'Ekovoltis Spółka z ograniczoną odpowiedzialnością', 'Kielce', 'Al. Solidarności 36', '25-323', 'Kielce', 'świętokrzyskie', '8992751675', 'OPZ', 'umorzono', '2023-03-09', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(112, 24601, 'ELBA Irena Bełtowska', 'Przedbórz', 'ul. Koncecka 50', '97-570', 'Przedbórz', 'łódzkie', '6561368025', 'OPC', 'umorzono', '2022-09-26', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(113, 30615, 'ELBA Spółka z ograniczoną odpowiedzialnością', 'Lublin', 'ul. Grażyny 1 lok. 7', '20-605', 'Lublin', 'lubelskie', '7123317011', 'OPC', 'umorzono', '2016-09-15', 'udzielenie koncesji', ''),
+(114, 7496, 'Elektrobud Mika Jan sp.j.', 'Piasek', 'ul. Leśna 40', '43-211', 'Czarków', 'śląskie', '6380000617', 'OPC', 'umorzono', '2018-07-04', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(115, 18925, 'Elektrociepłownia Stalowa Wola S.A.', 'Stalowa Wola', 'ul. Energetyków 13', '37-450', 'Stalowa Wola', 'podkarpackie', '8652527861', 'OPG', 'umorzono', '2019-06-27', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(116, 33312, 'ELEKTROSKANDIA POLSKa Sp. z o.o.', 'Poznań', 'Dziadoszańska 10', '61-248', 'Poznań', 'wielkopolskie', '7820032899', 'OPC', 'umorzono', '2017-03-27', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(117, 65073, 'Elektrownia PV 12 Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Tytusa Chałubińskiego 8', '00-613', 'Warszawa', 'mazowieckie', '5213818997', 'WEE', 'umorzono', '2021-11-22', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(118, 65071, 'Elektrownia PV 23 Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Tytusa Chałubińskiego 8', '00-613', 'Warszawa', 'mazowieckie', '5213840896', 'WEE', 'umorzono', '2021-11-19', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(119, 65146, 'Elektrownia PV 24 Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Tytusa Chałubińskiego 8', '00-613', 'Warszawa', 'mazowieckie', '5213840933', 'WEE', 'umorzono', '2021-11-22', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(120, 64397, 'Elektrownia Słoneczna Szkaradowo Spółka z ograniczoną odpowiedzialnością', 'Poznań', 'ul. Kopanina 52', '60-105', 'Poznań', 'wielkopolskie', '6991959645', 'WEE', 'umorzono', '2021-12-16', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(121, 26831, 'Elen Gas Sp. z o.o.', 'Warszawa', 'ul. M. Kopernika 5 / 7', '00-367', 'Warszawa', 'mazowieckie', '9721250269', 'OPZ', 'umorzono', '2016-09-12', 'udzielenie koncesji', ''),
+(122, 23090, 'Eltel Networks Energetyka Spółka Akcyjna', 'Olsztyn', 'Gutkowo 81D', '11-041', 'Olsztyn', 'warmińsko-mazurskie', '7390102722', 'WEE', 'umorzono', '2018-07-24', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(123, 28245, 'ELVO TRADE Sp. z o.o.', 'Warszawa', 'ul. Elektoralna 13 lok. 121', '00-137', 'Warszawa', 'mazowieckie', '5252644194', 'OPC', 'umorzono', '2016-09-28', 'udzielenie koncesji', ''),
+(124, 39640, 'EL-W sp. z o.o.', 'Katowice', 'ul. Warszawska 40 / 2 A', '40-008', 'Katowice', 'śląskie', '5732841138', 'WEE', 'umorzono', '2021-11-02', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(125, 14283, 'Elżbieta Demianiuk F.H.U. ELDAMEX', 'Siedlce', 'Pruszyn - Pieńki 25A', '08-110', 'Siedlce', 'mazowieckie', '8211005984', 'OPC', 'umorzono', '2016-09-29', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(126, 5944, 'Elżbieta Śmiech PHU AUTO-GAZ', 'Halinów', 'Wielgolas Brzeziński 7B', '05-074', 'Wielgolas Brzeziński', 'mazowieckie', '8221977648', 'OPC', 'umorzono', '2023-05-09', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(127, 64357, 'EMOTIS Sp z o.o.', 'Warszawa', 'Flisa 4', '02-247', 'Warszawa', 'mazowieckie', '7743235856', 'OPC', 'umorzono', '2019-12-31', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(128, 59842, 'ENERGIA EXPRESS Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'Brzeska 2', '03-737', 'Warszawa', 'mazowieckie', '1132954292', 'OPG', 'umorzono', '2022-11-10', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(129, 59913, 'ENERGIA POMORZE Spółka z ograniczoną odpowiedzialnością', 'Koszalin', 'ul. Maja 18 / 4', '75-800', 'Koszalin', 'zachodniopomorskie', '6692545054', 'OEE', 'umorzono', '2021-11-26', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(130, 64892, 'Energia Wrzesina Spółka z ograniczoną odpowiedzialnością', 'Olsztyn', 'ul. Górna 5', '10-040', 'Olsztyn', 'warmińsko-mazurskie', '7393921030', 'WEE', 'umorzono', '2021-12-13', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(131, 26245, 'Energy Gate Europe Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Nowy Świat 7 / 15', '00-496', 'Warszawa', 'mazowieckie', '5272728936', 'OPZ', 'umorzono', '2016-09-14', 'udzielenie koncesji', ''),
+(132, 28046, 'Enix Commodieties s.r.o.', 'Praga 2,Czechy', 'Mala Stepanska 1929/9', '12000', 'Praga 2,Czechy', '', '', 'OPG', 'umorzono', '2016-11-07', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(133, 28020, 'Enstatus Polska Sp. z o.o.', 'Warszawa', 'ul. Biała 4/81', '00-478', 'Warszawa', 'mazowieckie', '5272753762', 'OPC', 'umorzono', '2016-09-29', 'udzielenie koncesji', ''),
+(134, 28020, 'Enstatus Polska Sp. z o.o.', 'Warszawa', 'ul. Biała 4/81', '00-478', 'Warszawa', 'mazowieckie', '5272753762', 'OPZ', 'umorzono', '2016-09-29', 'udzielenie koncesji', ''),
+(135, 26540, 'EURO-BUD Robert Kornacki', 'Płock', 'ul. Dworcowa 31/1', '09-402', 'Płock', 'mazowieckie', '8371506040', 'OPC', 'umorzono', '2016-09-20', 'udzielenie koncesji', ''),
+(136, 32169, 'Expres Gaz Tomasz Kwiatkowski', 'Skarżysko Kościelne', 'ul. Południowa 19', '26-115', 'Skarżysko-Kościelne', 'świętokrzyskie', '6631343497', 'OPC', 'umorzono', '2017-03-07', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(137, 28220, 'F.H.U. \\MRO-POL\\ Zdzisław Mroszczyk', 'Przeworsk', 'Studzian 47', '37-200', 'Przeworsk', 'podkarpackie', '7941241828', 'OPC', 'umorzono', '2016-09-19', 'udzielenie koncesji', ''),
+(138, 66191, 'F.U.H. JANUSZ Sp. z o.o. Sp. k.', 'Nowa Karczma', 'Zielona Wieś 12B', '83-404', 'Zielona Wieś', 'pomorskie', '5911707698', 'OPC', 'umorzono', '2022-09-26', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(139, 46454, 'Fabryka Artykułów Turystycznych i Sportowych Polsport Spółka z ograniczoną odpowiedzialnością', 'Góra Kalwaria', 'ul. Kard. S. Wyszyńskiego 13', '05-530', 'Góra Kalwaria', 'mazowieckie', '1230004083', 'OEE', 'umorzono', '2021-07-28', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(140, 28085, 'Famex.PL sp. z o.o.', 'Rybnik', 'ul. Popiela 13', '44-200', 'Rybnik', 'śląskie', '6423194084', 'OPC', 'umorzono', '2016-09-08', 'udzielenie koncesji', ''),
+(141, 26701, 'Farma Wiatrowa Chojny 3 Sp. z o.o.', 'Warszawa', 'Hoża 86/410', '00-682', 'Warszawa', 'mazowieckie', '5342494516', 'WEE', 'umorzono', '2019-06-10', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(142, 30587, 'FHU \\GRAF\\ Ryszard Kułyniak', 'Nowogard', 'Wierzbięcin 25', '72-200', 'Nowogard', 'zachodniopomorskie', '8561520557', 'OPC', 'umorzono', '2016-09-23', 'udzielenie koncesji', ''),
+(143, 30597, 'FHU Aneta Piterek', 'Wągrowiec', 'Rogozińska 47', '62-100', 'Wągrowiec', 'wielkopolskie', '6070051483', 'OPC', 'umorzono', '2016-09-23', 'udzielenie koncesji', ''),
+(144, 5001, 'FHU JARBUD Gęborys Sławomir', 'Jarosław', 'ul. Jana Pawła II 42', '37-500', 'Jarosław', 'podkarpackie', '9211812998', 'OPC', 'umorzono', '2016-09-14', 'udzielenie koncesji', ''),
+(145, 66027, 'FHU Piotr Adamczyk', 'Sadlno', 'Boguszyczki 33', '62-619', 'Sadlno', 'wielkopolskie', '6652381505', 'OPC', 'umorzono', '2020-05-07', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(146, 28401, 'Firma Gastronomiczno-Handlowo-Usługowa LUKA Joanna Iskra', 'Lidzbark Warmiński', 'Markajmy 1', '11-100', 'Lidzbark Warmiński', 'warmińsko-mazurskie', '7432026240', 'OPC', 'umorzono', '2016-09-19', 'udzielenie koncesji', ''),
+(147, 26410, 'Firma Handlowo-Usługowa Adam Krupa', 'Łabędzie', 'Łabędzie 17', '98-290', 'Łabędzie', 'łódzkie', '8272198919', 'OPC', 'umorzono', '2016-10-06', 'udzielenie koncesji', ''),
+(148, 23143, 'Firma Handlowo-Usługowa Stacja Paliw Dołhobrody Katarzyna Chomiczuk', 'Hanna', 'Dołhobrody 110/4', '22-220', 'Hanna', 'lubelskie', '5651357823', 'OPC', 'umorzono', '2016-09-23', 'udzielenie koncesji', ''),
+(149, 64402, 'Firma Handlowo-Usługowa VIVA Hubert Zaleśkiewicz', 'Rypin', 'Rusinowo 35', '87-500', 'Rypin', 'kujawsko-pomorskie', '8921482417', 'OPC', 'umorzono', '2020-06-01', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(150, 12101, 'Firma Mechaniczno Handlowo Usługowa \\DIAGNOSTYK\\ Jan Kabała', 'Lidzbark Warmiński', 'ul. Żytnia 8', '11-100', 'Lidzbark Warmiński', 'warmińsko-mazurskie', '7430001000', 'WEE', 'umorzono', '2017-04-06', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(151, 18196, 'Firma Usługowa \\BŁYSK\\ Spółka z ograniczoną odpowiedzialnością', 'Dębica', 'ul. Gawrzyłowska 37', '39-200', 'Dębica', 'podkarpackie', '8722027320', 'OPC', 'umorzono', '2016-09-16', 'udzielenie koncesji', ''),
+(152, 26580, 'FORDEVIND Dorota Walendziak Cezariusz Walendziak S.C.', 'Warszawa', 'ul. Jana Nowaka-Jeziorańskiego 51/116', '03-982', 'Warszawa', 'mazowieckie', '9562310667', 'WEE', 'umorzono', '2017-09-12', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(153, 15123, 'FORZA Grzegorz Filipowicz', 'Reszel', 'Robawy 4', '11-440', 'Reszel', 'warmińsko-mazurskie', '7421525057', 'OPC', 'umorzono', '2017-05-12', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(154, 23780, 'FOTOBAU Spółka z ograniczoną odpowiedzialnością', 'Tomaszów Mazowiecki', 'ul. Norberta Barlickiego 2', '97-200', 'Tomaszów Mazowiecki', 'łódzkie', '7732472015', 'WEE', 'umorzono', '2021-11-23', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(155, 23780, 'FOTOBAU Spółka z ograniczoną odpowiedzialnością', 'Tomaszów Mazowiecki', 'ul. Norberta Barlickiego 2', '97-200', 'Tomaszów Mazowiecki', 'łódzkie', '7732472015', 'WEE', 'umorzono', '2021-06-08', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(156, 70822, 'FOTOSUN Spółka z ograniczoną odpowiedzialnością Spółka komandytowa', 'Dębica', 'ul. 23 Sierpnia 30', '39-200', 'Dębica', 'podkarpackie', '8722426250', 'OEE', 'umorzono', '2023-05-29', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(157, 71363, 'Fotowoltaika Pionka 1 Spółka z ograniczoną odpowiedzialnością', 'Glinojeck', 'Zygmuntowo 20A', '06-450', 'Zygmuntowo', 'mazowieckie', '5662030095', 'WEE', 'umorzono', '2023-10-12', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(158, 64440, 'Freepoint Commodities B.V.', 'Maastricht-Airport, Netherlands', 'Europalaan 24', '6199AB', 'Maastricht-Airport', '', '', 'OGZ', 'umorzono', '2021-04-07', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(159, 64440, 'Freepoint Commodities B.V.', 'Maastricht-Airport, Netherlands', 'Europalaan 24', '6199AB', 'Maastricht-Airport', '', '', 'OPG', 'umorzono', '2021-04-07', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(160, 28125, 'FUELPORT Sp. z o.o.', 'Rogowiec', 'ul. Instalacyjna 14', '97-427', 'Rogowiec', 'łódzkie', '7692224965', 'OPC', 'umorzono', '2016-10-06', 'udzielenie koncesji', ''),
+(161, 30481, 'G&O ENERGY Sp. z o.o.', 'Warszawa', 'ul. Williama Heerleina Lindleya 16 lok. 305', '00-013', 'Warszawa', 'mazowieckie', '7010549642', 'OPC', 'umorzono', '2016-09-23', 'udzielenie koncesji', ''),
+(162, 28124, 'G4 OIL Sp. z o.o.', 'Warszawa', 'ul. Złota 7 lok. 18', '00-019', 'Warszawa', 'mazowieckie', '5252621052', 'OPC', 'umorzono', '2016-09-27', 'udzielenie koncesji', ''),
+(163, 69807, 'GAC SP. Z O.O.', 'NIEPOŁOMICE', 'ul. NA TAMIE 1 A', '32-005', 'NIEPOŁOMICE', 'małopolskie', '6832115900', 'OPC', 'umorzono', '2022-04-28', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(164, 22184, 'Gartex sp. z o.o.', 'Chorzów', 'ul. Wolności 40/15', '41-500', 'Chorzów', 'śląskie', '7831687345', 'OPC', 'umorzono', '2016-10-04', 'udzielenie koncesji', ''),
+(165, 70624, 'Gasileo sp. z o.o.', 'Kraków', 'ul. Wincentego Wodzinowskiego 6', '31-309', 'Kraków', 'małopolskie', '6751765410', 'OPC', 'umorzono', '2023-10-16', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(166, 64915, 'GASKAM, KAMILLA CHLEBOWSKA', 'MALBORK', 'ROLNICZA 9A / 8', '82-200', 'MALBORK', 'pomorskie', '5791389869', 'OPC', 'umorzono', '2021-06-01', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(167, 28228, 'Gaspro Invest Sp. z o.o.', 'Poznań', 'ul. Człuchowska 8A', '60-434', 'Poznań', 'wielkopolskie', '7811924345', 'OPC', 'umorzono', '2016-09-29', 'udzielenie koncesji', ''),
+(168, 28228, 'Gaspro Invest Sp. z o.o.', 'Poznań', 'ul. Człuchowska 8A', '60-434', 'Poznań', 'wielkopolskie', '7811924345', 'OPZ', 'umorzono', '2016-09-29', 'udzielenie koncesji', ''),
+(169, 69090, 'Gaz na Chmielnej Marek Skowyra', 'Hrubieszów', 'Dziekanów 121/3 / 8', '22-500', 'Dziekanów', 'lubelskie', '9191385121', 'OPC', 'umorzono', '2021-05-14', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(170, 30683, 'Geris-Trans Sp.z o.o.', 'Chrzanów', 'ul. Henryka Sienkiewicza 11', '32-500', 'Chrzanów', 'małopolskie', '6282267259', 'OPC', 'umorzono', '2017-07-27', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(171, 43032, 'GI City Therm Sp. z o.o.', 'Warszawa', 'Plac Konesera 8', '03-736', 'Warszawa', 'mazowieckie', '1132912543', 'OEE', 'umorzono', '2022-04-29', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(172, 32084, 'GISolution Bartosz Kulawik', 'Kraków', 'Zbrojarzy 26', '30-412', 'Kraków', 'małopolskie', '7642381183', 'OPC', 'umorzono', '2017-06-29', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(173, 49512, 'Global Marketing Holding Sp. z o.o. Sp. k.', 'Katowice', 'Staromiejska 6/10D', '40-013', 'Katowice', 'śląskie', '9542759513', 'OEE', 'umorzono', '2018-10-25', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(174, 49512, 'Global Marketing Holding Sp. z o.o. Sp. k.', 'Katowice', 'Staromiejska 6/10D', '40-013', 'Katowice', 'śląskie', '9542759513', 'OPG', 'umorzono', '2018-10-24', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(175, 28009, 'Gminna Spółdzielnia \\Samopomoc Chłopska\\', 'Gorzyce', 'ul. Rybnicka 10', '44-350', 'Gorzyce', 'śląskie', '6470509359', 'OPC', 'umorzono', '2019-06-24', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(176, 28009, 'Gminna Spółdzielnia \\Samopomoc Chłopska\\', 'Gorzyce', 'ul. Rybnicka 10', '44-350', 'Gorzyce', 'śląskie', '6470509359', 'OPC', 'umorzono', '2022-08-03', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(177, 64517, 'Gminna Spółdzielnia \\Samopomoc Chłopska\\', 'Baranowo', 'ul. Długa 11', '06-320', 'Baranowo', 'mazowieckie', '7610002260', 'OPC', 'umorzono', '2019-04-09', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(178, 64264, 'Gminne Przedsiębiorstwo Oczyszczania Spółka z ograniczoną odpowiedzialnością', 'Bogatynia', 'ul. Kilińskiego 17', '59-920', 'Bogatynia', 'dolnośląskie', '6151557318', 'OEE', 'umorzono', '2019-06-01', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(179, 28275, 'GRADOMID Sp. z o.o.', 'Bydgoszcz', 'ul. Gajowa 102 lok. 3', '85-717', 'Bydgoszcz', 'kujawsko-pomorskie', '5542938337', 'OPC', 'umorzono', '2016-09-08', 'udzielenie koncesji', ''),
+(180, 22859, 'Green Investment Spółka z ograniczoną odpowiedzialnością', 'Warszawa', '-', '03-741', 'Warszawa', 'mazowieckie', '1182003009', 'OEE', 'umorzono', '2019-02-28', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(181, 69792, 'Grupa Producentów Amazis sp. z o.o.', 'Kostrzyn', 'ul. Wierzbowa 8', '62-025', 'Trzek', 'wielkopolskie', '9721201934', 'WEE', 'umorzono', '2022-02-07', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(182, 5002, 'Grzegorz Gęborys TOMGAZ', 'Tomaszów Lubelski', 'ul. Żołnierzy Września 2', '22-600', 'Tomaszów Lubelski', 'lubelskie', '9211824027', 'OPC', 'umorzono', '2016-09-13', 'udzielenie koncesji', ''),
+(183, 70190, 'GS OMB Spółka z ograniczoną odpowiedzialnością', 'Nowe Skalmierzyce', 'ul. 29 Grudnia 2C', '63-460', 'Nowe Skalmierzyce', 'wielkopolskie', '6222435049', 'WEE', 'umorzono', '2022-10-20', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(184, 32190, 'HANDEL USŁUGI Katarzyna Żaczek', 'Zduny', 'Nowe Zduny 3', '99-440', 'Nowe Zduny', 'łódzkie', '8341163322', 'OPC', 'umorzono', '2017-09-01', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(185, 30524, 'HANTOM Jacek Majewski', 'Świebodzin', 'ul. Wojska Polskiego 10', '66-200', 'Świebodzin', 'lubuskie', '9271069540', 'OPC', 'umorzono', '2016-09-30', 'udzielenie koncesji', ''),
+(186, 46460, 'Hendi Polska Sp. z o.o.', 'Gądki', 'ul. Magazynowa 5', '62-023', 'Gądki', 'wielkopolskie', '7792270344', 'OPC', 'umorzono', '2018-01-10', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(187, 46460, 'Hendi Polska Sp. z o.o.', 'Gądki', 'ul. Magazynowa 5', '62-023', 'Gądki', 'wielkopolskie', '7792270344', 'OPC', 'umorzono', '2019-01-15', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(188, 30518, 'HIT OIL Sp. z o.o.', 'Olszyna', 'Olszyna 54H', '63-500', 'Olszyna', 'wielkopolskie', '5140336783', 'OPC', 'umorzono', '2016-10-04', 'udzielenie koncesji', ''),
+(189, 28167, 'Hit-Gas Sp. z o.o.', 'Kleszczów', 'Czyżów 12f', '97-410', 'Kleszczów', 'łódzkie', '7692223701', 'OPC', 'umorzono', '2016-09-27', 'udzielenie koncesji', ''),
+(190, 69139, 'IEN OPERATOR Sp. z o.o.', '02-691', 'ul. Kolady 3', '02-691', 'Warszawa', 'mazowieckie', '9462648119', 'DEE', 'umorzono', '2022-03-15', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(191, 26895, 'INEON OLSZOWIAK Sp.k.', 'Ostrów Wlkp.', 'ul. Józefa Piłsudskiego 29', '63-400', 'Ostrów Wielkopolski', 'wielkopolskie', '6222782756', 'OGZ', 'umorzono', '2016-10-21', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(192, 26895, 'INEON OLSZOWIAK Sp.k.', 'Ostrów Wlkp.', 'ul. Józefa Piłsudskiego 29', '63-400', 'Ostrów Wielkopolski', 'wielkopolskie', '6222782756', 'OGZ', 'umorzono', '2022-06-30', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(193, 30576, 'INMA Sp. z o.o. Sp. komandytowa', 'Kraków', 'Os. Bohaterów Września 1E/8', '31-620', 'Kraków', 'małopolskie', '6783152142', 'OPC', 'umorzono', '2016-09-16', 'udzielenie koncesji', ''),
+(194, 28326, 'INTER-FLOTA PALIWA Sp. z o.o.', 'Warszawa', 'ul. Powstańców Śląskich 103 / 1', '01-335', 'Warszawa', 'mazowieckie', '5372633632', 'OPC', 'umorzono', '2016-09-14', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(195, 3135, 'INTERGAS Sp. z o.o.', 'Szczecin', 'Tczewska 32', '70-850', 'Szczecin', 'zachodniopomorskie', '8520009448', 'MPC', 'umorzono', '2018-08-23', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(196, 22751, 'INVEST GLOBAL Spółka z ograniczoną odpowiedzialnością', 'Legnica', 'al. Rzeczypospolitej 116', '59-220', 'Legnica', 'dolnośląskie', '6912456827', 'MPC', 'umorzono', '2016-09-12', 'udzielenie koncesji', ''),
+(197, 4381, 'ISD Huta Częstochowa Sp. z o. o.', 'Częstochowa', 'ul. Kucelińska 22', '42-207', 'Częstochowa', 'śląskie', '9491827824', 'OEE', 'umorzono', '2020-01-23', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(198, 24904, 'ITAXI.PL Spółka z ograniczoną odpowiedzialnością', 'Białystok', 'ul. Legionowa 28', '15-281', 'Białystok', 'podlaskie', '1182053355', 'OPC', 'umorzono', '2018-03-27', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(199, 24163, 'IVONE Sp. z o.o.', 'Warszawa', 'Al. Ujazdowskie 26 / 96', '00-478', 'Warszawa', 'mazowieckie', '8992756678', 'OPZ', 'umorzono', '2019-03-21', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(200, 34444, 'IWMAR ENERGIA Sp. z o.o.', 'Brzeziny', 'Marianów Kołacki 10 A / 1', '95-060', 'Marianów Kołacki', 'łódzkie', '8371818839', 'WEE', 'umorzono', '2021-11-19', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(201, 30523, 'JACK-SPEED Sp. z o.o.', 'Nowa Sól', 'ul. Przyszłości 1', '67-100', 'Nowa Sól', 'lubuskie', '9252105418', 'OPC', 'umorzono', '2016-09-23', 'udzielenie koncesji', ''),
+(202, 32047, 'JANVEST - Spółka akcyjna', 'Toruń', 'ul. Kosynierów Kościuszkowskich 13', '87-100', 'Toruń', 'kujawsko-pomorskie', '8792289806', 'WEE', 'umorzono', '2017-03-15', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(203, 24231, 'JDC SPÓŁKA Z OGRANICZONA ODPOWIEDZIALNOSCIA', 'Warszawa', 'ul. Koszykowa 54', '00-675', 'Warszawa', 'mazowieckie', '5242771057', 'OPZ', 'umorzono', '2016-09-12', 'udzielenie koncesji', ''),
+(204, 6520, 'Jerzy Meyer MEYERGAZ', 'Człuchów', 'ul. Traugutta 9B', '77-300', 'Człuchów', 'pomorskie', '8431320736', 'OPC', 'umorzono', '2018-05-17', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(205, 67467, 'Jet-Pol Corporation sp. z o.o.', 'Mysłowice', 'ul. Katowicka 72', '41-400', 'Mysłowice', 'śląskie', '2220916038', 'OPC', 'umorzono', '2022-03-22', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(206, 26800, 'JFK SPARK Sp. z o.o.', 'Poznań', 'ul. Lutycka 95', '60-478', 'Poznań', 'wielkopolskie', '7811917902', 'OPC', 'umorzono', '2016-09-28', 'udzielenie koncesji', ''),
+(207, 28322, 'JM Jakub Mrowca', 'Nowy Sącz', 'ul. Chruślicka 11', '33-300', 'Nowy Sącz', 'małopolskie', '7342972276', 'OPC', 'umorzono', '2017-10-24', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(208, 28322, 'JM Jakub Mrowca', 'Nowy Sącz', 'ul. Chruślicka 11', '33-300', 'Nowy Sącz', 'małopolskie', '7342972276', 'OPC', 'umorzono', '2016-09-16', 'udzielenie koncesji', ''),
+(209, 7234, 'Joanna Mariańczyk-Przybysz, Damian Przybysz FRACHTER-LOGISTIC s.c.', 'Zgierz', 'ul. Koszarowa 6', '95-100', 'Zgierz', 'łódzkie', '7321966282', 'OPC', 'umorzono', '2016-10-05', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(210, 21912, 'JRM Sp. z o.o. Sp. komandytowa', 'Piastów', 'Al. Jerozolimskie 338', '05-820', 'Piastów', 'mazowieckie', '5342482571', 'OPC', 'umorzono', '2018-03-21', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(211, 53655, 'JUMA SP. Z O.O.', 'Maków Mazowiecki', 'Przemysłowa 9', '06-200', 'Maków Mazowiecki', 'mazowieckie', '7571429504', 'PCC', 'umorzono', '2023-12-14', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(212, 43153, 'K GAZ Sp. z o.o.', 'Pomiechówek', 'Stanisławowo 90H', '05-180', 'Stanisławowo', 'mazowieckie', '5242815872', 'OPC', 'umorzono', '2024-02-26', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(213, 14490, 'Kapusta Artur \\ART-GAZ\\ Firma Handlowa', 'Radom', 'ul. Idalińska 11b / 1', '26-600', 'Radom', 'mazowieckie', '9481476754', 'OPC', 'umorzono', '2017-12-08', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(214, 16104, 'Karol Sobolewski Przedsiębiorstwo Handlowo-Usługowe \\SASS\\', 'Grajewo', 'ul. Wojska Polskiego 42', '19-200', 'Grajewo', 'podlaskie', '7191071574', 'OPC', 'umorzono', '2016-09-15', 'udzielenie koncesji', ''),
+(215, 23608, 'KEA SYSTEM Sp. z o.o.', 'Bielany', 'ul. Słoneczna 5', '08-311', 'Bielany', 'mazowieckie', '8231657514', 'MPC', 'umorzono', '2018-04-23', 'udzielenie koncesji (*)', 'art. 105 § 2 kpa'),
+(216, 28335, 'KJ PROJEKT Sp. z o.o.', 'Poznań', 'ul. Człuchowska 8A', '60-434', 'Poznań', 'wielkopolskie', '7811928596', 'OPC', 'umorzono', '2016-10-07', 'udzielenie koncesji', ''),
+(217, 30520, 'KK PRZEDSIĘBIORSTWO HANDLOWE Sp. z o.o.', 'Poznań', 'Naramowicka 2B lok 17', '61-611', 'Poznań', 'wielkopolskie', '9721264001', 'OPC', 'umorzono', '2016-09-26', 'udzielenie koncesji', ''),
+(218, 23080, 'KL Sp. z o.o.', 'Olszanka', 'Pogorzela 78', '49-332', 'Olszanka', 'opolskie', '7471893751', 'OPC', 'umorzono', '2016-09-23', 'udzielenie koncesji', ''),
+(219, 64651, 'KMB-TYRANS Krzysztof Bończyk', 'Łowicz', 'Kopernika 22', '99-400', 'Łowicz', 'mazowieckie', '8341234418', 'OPC', 'umorzono', '2019-05-14', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(220, 70288, 'KOWAL Marek Kowal', 'Włodawa', 'ul. Ogrodowa 11', '22-200', 'Włodawa', 'lubelskie', '5651145498', 'WEE', 'umorzono', '2023-02-17', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(221, 67461, 'KRUK PALIWA spółka z ograniczoną odpowiedzialnością', 'Wałcz', 'ul. Budowlanych 95', '78-600', 'Wałcz', 'zachodniopomorskie', '7651699217', 'OPC', 'umorzono', '2020-09-25', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(222, 13536, 'Krypton Sp. z o.o.', 'Siedlce', 'ul. Wałowa 6', '08-110', 'Siedlce', 'mazowieckie', '6030018255', 'WPC', 'umorzono', '2018-08-30', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(223, 30649, 'Krzysztof Kawecki', 'Kożuchów', 'ul. Mickiewicza 12', '67-120', 'Kożuchów', 'lubuskie', '9252006202', 'OPC', 'umorzono', '2016-09-27', 'udzielenie koncesji', ''),
+(224, 30627, 'Krzysztof Kłaput PETROLTECH', 'Lgota', 'ul. Podgórska 22', '34-103', 'Lgota', 'małopolskie', '5512240454', 'OPC', 'umorzono', '2016-09-16', 'udzielenie koncesji', ''),
+(225, 5056, 'Krzysztof Kozak, Beata Madejek Koma LPG s.c.', 'Lublin', 'Al. Unii Lubelskiej 1', '20-108', 'Lublin', 'lubelskie', '9462163770', 'OPC', 'umorzono', '2017-03-02', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(226, 5056, 'Krzysztof Kozak, Beata Madejek Koma LPG s.c.', 'Lublin', 'Al. Unii Lubelskiej 1', '20-108', 'Lublin', 'lubelskie', '9462163770', 'OPC', 'umorzono', '2016-09-14', 'udzielenie koncesji', ''),
+(227, 23253, 'KZL sp. z o.o.', 'Kłomnice', 'ul. Częstochowska 13', '42-270', 'Kłomnice', 'śląskie', '5732847135', 'OPC', 'umorzono', '2020-06-24', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(228, 24301, 'Leszek Malicki', 'Poznań', 'ul. Szczepankowo 52a', '61-311', 'Poznań', 'wielkopolskie', '7822302570', 'WEE', 'umorzono', '2017-12-28', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(229, 16186, 'Leszek Orłowski LAZO - dystrybucja gazu płynnego', 'Jedwabne', 'ul. Cmentarna 20', '18-420', 'Jedwabne', 'podlaskie', '7181820494', 'OPC', 'umorzono', '2016-09-19', 'udzielenie koncesji', ''),
+(230, 30609, 'LEXPET Sp. z o.o.', 'Łódź', 'ul. Zgierska 110/120 lok. 137', '91-303', 'Łódź', 'łódzkie', '7262657578', 'OPC', 'umorzono', '2016-10-06', 'udzielenie koncesji', ''),
+(231, 28174, 'Lions Wood sp. z o.o.', 'Dzierżoniów', 'Diorowska 28', '58-200', 'Dzierżoniów', 'dolnośląskie', '8822123804', 'OPC', 'umorzono', '2016-09-27', 'udzielenie koncesji', ''),
+(232, 68628, 'Liquind 24/7 GmbH', 'Berlin', 'Schlüterstraβe 39', '10629', 'Berlin', '', '', 'OPG', 'umorzono', '2021-05-20', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(233, 66133, 'LKRGAZ DANIEL BOCZKOWSKI', 'Kraśnik', 'ul. Metalowców 2', '23-204', 'Kraśnik', 'lubelskie', '7151758514', 'OPC', 'umorzono', '2020-07-10', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(234, 36596, 'LOKALNA STACJA PALIW Sp. z o.o.', 'Warszawa', 'Elektoralna 13 / 307', '00-137', 'Warszawa', 'mazowieckie', '8442359305', 'OPC', 'umorzono', '2017-10-26', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(235, 47472, 'LOTRUX Spółka z ograniczoną odpowiedzialnością', 'Łuków', 'ul. Trzaskoniec 13 / 15', '21-400', 'Łuków', 'lubelskie', '9223056829', 'DPG', 'umorzono', '2018-01-12', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(236, 47472, 'LOTRUX Spółka z ograniczoną odpowiedzialnością', 'Łuków', 'ul. Trzaskoniec 13 / 15', '21-400', 'Łuków', 'lubelskie', '9223056829', 'OPC', 'umorzono', '2018-02-28', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(237, 28076, 'LPG INVEST spółka z ograniczoną odpowiedzialnością', 'Choroszcz', 'ul. Chabrowa 4', '16-070', 'Choroszcz', 'podlaskie', '9662102833', 'OPC', 'umorzono', '2016-09-15', 'udzielenie koncesji', ''),
+(238, 30596, 'LTP-Logistyka Sp. z o.o.', 'Murowana Goślina', 'ul. Wojska Polskiego 6', '62-095', 'Murowana Goślina', 'wielkopolskie', '7773363429', 'OPC', 'umorzono', '2016-09-28', 'udzielenie koncesji', ''),
+(239, 7867, 'Lucjan Jamróz Węzeł Babica Stacja Paliw', 'Czudec', 'Babica 416a', '38-120', 'Czudec', 'podkarpackie', '8190002442', 'OPC', 'umorzono', '2016-09-15', 'udzielenie koncesji', ''),
+(240, 15670, 'Łukasz Ratajczyk Przedsiębiorstwo Wielobranżowe HARPIA Ł.R.', 'Grodzisk Wielkopolski', 'ul. Bukowska 91', '62-065', 'Grodzisk Wielkopolski', 'wielkopolskie', '7792177952', 'OPC', 'umorzono', '2016-09-21', 'udzielenie koncesji', ''),
+(241, 23216, 'M&M Sp. z o.o.', 'Dragacz', 'Michale 99A', '86-134', 'Michale', 'kujawsko-pomorskie', '5252553178', 'OPC', 'umorzono', '2016-10-05', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(242, 11959, 'Mała Elektrownia Wodna w Miłakowie s.c. Mikołaj Włas - Janina Dunajska', 'Miłakowo', 'ul. Młyńska 1/2', '14-310', 'Miłakowo', 'warmińsko-mazurskie', '7411744697', 'WEE', 'umorzono', '2018-11-20', 'udzielenie koncesji', 'art. 105 § 1 kpa');
 INSERT INTO `concession_remitted` (`id`, `dkn`, `nazwa`, `poczta`, `adres`, `kod`, `miejscowosc`, `wojewodztwo`, `nip`, `rodzajKoncesji`, `sposobZakonczenia`, `dataWydania`, `sprawa`, `podstawaPrawna`) VALUES
-(233, 66133, 'LKRGAZ DANIEL BOCZKOWSKI', 'Kraśnik', 'ul. Metalowców 2', '23-204', 'Kraśnik', 'lubelskie', '7151758514', 'OPC', 'umorzono', '2020-07-10 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(234, 36596, 'LOKALNA STACJA PALIW Sp. z o.o.', 'Warszawa', 'Elektoralna 13 / 307', '00-137', 'Warszawa', 'mazowieckie', '8442359305', 'OPC', 'umorzono', '2017-10-26 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(235, 47472, 'LOTRUX Spółka z ograniczoną odpowiedzialnością', 'Łuków', 'ul. Trzaskoniec 13 / 15', '21-400', 'Łuków', 'lubelskie', '9223056829', 'DPG', 'umorzono', '2018-01-12 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(236, 47472, 'LOTRUX Spółka z ograniczoną odpowiedzialnością', 'Łuków', 'ul. Trzaskoniec 13 / 15', '21-400', 'Łuków', 'lubelskie', '9223056829', 'OPC', 'umorzono', '2018-02-28 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(237, 28076, 'LPG INVEST spółka z ograniczoną odpowiedzialnością', 'Choroszcz', 'ul. Chabrowa 4', '16-070', 'Choroszcz', 'podlaskie', '9662102833', 'OPC', 'umorzono', '2016-09-15 00:00:00', 'udzielenie koncesji', ''),
-(238, 30596, 'LTP-Logistyka Sp. z o.o.', 'Murowana Goślina', 'ul. Wojska Polskiego 6', '62-095', 'Murowana Goślina', 'wielkopolskie', '7773363429', 'OPC', 'umorzono', '2016-09-28 00:00:00', 'udzielenie koncesji', ''),
-(239, 7867, 'Lucjan Jamróz Węzeł Babica Stacja Paliw', 'Czudec', 'Babica 416a', '38-120', 'Czudec', 'podkarpackie', '8190002442', 'OPC', 'umorzono', '2016-09-15 00:00:00', 'udzielenie koncesji', ''),
-(240, 15670, 'Łukasz Ratajczyk Przedsiębiorstwo Wielobranżowe HARPIA Ł.R.', 'Grodzisk Wielkopolski', 'ul. Bukowska 91', '62-065', 'Grodzisk Wielkopolski', 'wielkopolskie', '7792177952', 'OPC', 'umorzono', '2016-09-21 00:00:00', 'udzielenie koncesji', ''),
-(241, 23216, 'M&M Sp. z o.o.', 'Dragacz', 'Michale 99A', '86-134', 'Michale', 'kujawsko-pomorskie', '5252553178', 'OPC', 'umorzono', '2016-10-05 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(242, 11959, 'Mała Elektrownia Wodna w Miłakowie s.c. Mikołaj Włas - Janina Dunajska', 'Miłakowo', 'ul. Młyńska 1/2', '14-310', 'Miłakowo', 'warmińsko-mazurskie', '7411744697', 'WEE', 'umorzono', '2018-11-20 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(243, 24724, 'Małgorzata Myszka', 'Łaziska', 'Piotrawin 114B', '24-335', 'Łaziska', 'lubelskie', '7171032080', 'WEE', 'umorzono', '2018-03-26 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(244, 16690, 'Marcin Plamowski - Przdsiebiorstwo Handlowo-Usługowe \\MAR-GAZ\\', 'Pajęczno', 'Dylów Rządowy 99B', '98-330', 'Pajęczno', 'łódzkie', '7722071823', 'OPC', 'umorzono', '2017-03-20 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(245, 7908, 'Marek Dymny Firma Handlowo-Usługowa \\MARKO\\ Stacja Tankowania Samochodów LPG', 'Daszyna', 'Daszyna 36A', '99-107', 'Daszyna', 'łódzkie', '7751220504', 'OPC', 'umorzono', '2017-10-24 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(246, 6419, 'Marian Janiszek i Wspólnicy Mar-Rom Spółka z ograniczoną odpowiedzialnością', 'Orońsko', 'Dobrut 18B', '26-505', 'Orońsko', 'mazowieckie', '7990000421', 'MPC', 'umorzono', '2023-01-13 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(247, 14599, 'Mariusz Gajo - GAS', 'Kamień Pomorski', 'ul. Jana Długosza 11A', '72-400', 'Kamień Pomorski', 'zachodniopomorskie', '8561545600', 'OPC', 'umorzono', '2017-01-11 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(248, 24431, 'Marselwind sp. z o.o.', 'Katowice', 'ul. Ks.Piotra Ściegiennego 3', '40-114', 'Katowice', 'śląskie', '6342831517', 'WEE', 'umorzono', '2016-11-03 00:00:00', 'udzielenie koncesji', ''),
-(249, 21105, 'Marywilska 44 Sp. z o.o.', 'Warszawa', 'ul. Marywilska 44', '03-042', 'Warszawa', 'mazowieckie', '5242711428', 'OEE', 'umorzono', '2022-02-28 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(250, 28330, 'MAT-POL OIL Sp. z o.o.', 'Poznań', 'Wojska Polskiego 12', '60-637', 'Poznań', 'wielkopolskie', '2530334508', 'OPC', 'umorzono', '2016-09-23 00:00:00', 'udzielenie koncesji', ''),
-(251, 16628, 'MAX-GAZ Bartłomiej Olszowiak', 'Galewice', 'ul. Zmyślona 2', '98-405', 'Galewice', 'łódzkie', '9970022722', 'OPC', 'umorzono', '2016-09-22 00:00:00', 'udzielenie koncesji', ''),
-(252, 30606, 'MAXMAR Sp. z o.o.', 'Błędów', 'Wilhelmów 29', '05-620', 'Błędów', 'mazowieckie', '7972050360', 'OPC', 'umorzono', '2016-10-07 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(253, 2819, 'Megatem EC-Lublin Sp. z o.o.', 'Lublin', 'ul. Mełgiewska 7-9', '20-952', 'Lublin', 'lubelskie', '9462311443', 'OCC', 'umorzono', '2022-12-16 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(254, 597, 'Michelin Polska Spółka z ograniczoną odpowiedzialnością', 'Olsztyn', 'Leonharda 9', '10-454', 'Olsztyn', 'warmińsko-mazurskie', '7390203825', 'WEE', 'umorzono', '2016-12-20 00:00:00', 'udzielenie koncesji', ''),
-(255, 4337, 'Mieczysław Markuszewski PPH MARK-GAZ', 'Płock', 'ul. Banacha 10', '09-400', 'Płock', 'mazowieckie', '7741477207', 'MPC', 'umorzono', '2020-04-27 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(256, 133, 'Miejskie Przedsiębiorstwo Energetyki Cieplnej Sp. z o.o.', 'Chełm', 'ul. Towarowa 9', '22-100', 'Chełm', 'lubelskie', '5630000843', 'OCC', 'umorzono', '2022-11-17 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(257, 30607, 'MIRAS Sp. z o.o.', 'Łódź', 'ul. Zarzewska 17 lok. 15', '93-184', 'Łódź', 'łódzkie', '7292708760', 'OPC', 'umorzono', '2016-10-06 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(258, 20714, 'MJM Spółka z ograniczoną odpowiedzialnością MIGA Spółka Komandytowa', 'Działdowo', 'ul. Księżodworska 6', '13-200', 'Działdowo', 'warmińsko-mazurskie', '5711671458', 'WEE', 'umorzono', '2021-12-27 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(259, 28337, 'MK OIL Sp. z o.o.', 'Pniewy', 'Pniewy 4', '05-652', 'Pniewy', 'mazowieckie', '7972057528', 'OPC', 'umorzono', '2016-09-27 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(260, 13053, 'MK PETROL Sp. z o. o.', 'Warszawa', 'ul. F. Klimczaka 5 lok. 35', '02-797', 'Warszawa', 'mazowieckie', '9512126134', 'OPZ', 'umorzono', '2020-04-09 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(261, 55792, 'MM-Solar Jarosz Kulikowski Spółka z ograniczoną odpowiedzialnością', 'Łomża', 'ul. Gen. Władysława Sikorskiego 321', '18-400', 'Łomża', 'podlaskie', '7182145534', 'WEE', 'umorzono', '2021-12-13 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(262, 28342, 'Moostank Sp. z o.o.', 'Gorlice', 'Ropica Polska 338', '38-300', 'Ropica Polska', 'małopolskie', '6762504972', 'OPC', 'umorzono', '2016-09-16 00:00:00', 'udzielenie koncesji', ''),
-(263, 28247, 'MORENA METAL Sp. z o.o.', 'Warszawa', 'ul. Urocza 39D', '05-075', 'Warszawa', 'mazowieckie', '1251635883', 'OPC', 'umorzono', '2016-09-27 00:00:00', 'udzielenie koncesji', ''),
-(264, 32142, 'MORION TECH spółka z ograniczoną odpowiedzialnością', 'Niepołomice', 'Niepołomice 204', '32-020', 'Zagórze', 'małopolskie', '6832075282', 'OPC', 'umorzono', '2017-08-25 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(265, 28375, 'MOYER Sp. z o.o.', 'Toruń', 'Wielko Rów 40B lok. 23', '87-100', 'Toruń', 'kujawsko-pomorskie', '8792684721', 'OPC', 'umorzono', '2016-09-27 00:00:00', 'udzielenie koncesji', ''),
-(266, 28118, 'MRA Petrol sp. z o.o.', 'Katowice', 'ul. Krasińskiego 29 / 9', '40-019', 'Katowice', 'śląskie', '6591544886', 'OPC', 'umorzono', '2016-09-16 00:00:00', 'udzielenie koncesji', ''),
-(267, 70903, 'MW STAROIL Sp. z o.o.', 'Łódź', 'ul. Łąkowa 7B', '90-562', 'Łódź', 'łódzkie', '7272847748', 'OPC', 'umorzono', '2023-02-27 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(268, 69295, 'Myjnia Samochodowa Auto- Błysk Janusz Tempski', 'Gościcino', 'Równa 4', '84-241', 'Gościcino', 'pomorskie', '5881979089', 'WEE', 'umorzono', '2021-11-24 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(269, 30459, 'NAFCOM Sp. z o.o. sp.k.', 'Piotrków Trybunalski', 'ul. Regatowa 11', '97-300', 'Piotrków Trybunalski', 'łódzkie', '7712883086', 'OPC', 'umorzono', '2016-09-30 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(270, 26149, 'Naft-Trans Sp. z o.o.', 'Nowe Miasteczko', 'ul. Przemysłowa 2', '67-124', 'Nowe Miasteczko', 'lubuskie', '9252099333', 'OPC', 'umorzono', '2016-10-06 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(271, 21449, 'Nano-Solar Sp. z o.o.', 'Olsztynek', 'Sudwa 12 B', '11-015', 'Sudwa', 'warmińsko-mazurskie', '5272620191', 'DPG', 'umorzono', '2019-07-25 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(272, 28173, 'Neo Polska Sp. z o.o.', 'Wolin', 'ul. Świerczewskiego 31', '72-510', 'Wolin', 'zachodniopomorskie', '9860242351', 'OPC', 'umorzono', '2016-09-26 00:00:00', 'udzielenie koncesji', ''),
-(273, 11460, 'Neo Power Sp. z o.o.', 'Warszawa', 'ul. Franciszka Klimczaka 1', '02-797', 'Warszawa', 'mazowieckie', '5262677195', 'DEE', 'umorzono', '2022-03-30 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(274, 28044, 'NEXOIL Sp. z o.o.', 'Pniewy', 'Wspólna 1', '62-045', 'Pniewy', 'wielkopolskie', '9231695461', 'OPC', 'umorzono', '2016-09-30 00:00:00', 'udzielenie koncesji', ''),
-(275, 26286, 'NOR - GAZ Andrzej Gocan', 'Pruszków', 'Al. Wojska Polskiego 40/47', '05-804', 'Pruszków', 'mazowieckie', '5342099464', 'OPC', 'umorzono', '2016-09-23 00:00:00', 'udzielenie koncesji', ''),
-(276, 24114, 'Oaza Bis sp. z o.o. sp. k.', 'Rybarzowice', 'ul. Żywiecka 823', '43-378', 'Rybarzowice', 'śląskie', '9372670701', 'OPC', 'umorzono', '2016-09-08 00:00:00', 'udzielenie koncesji', ''),
-(277, 64983, 'OIL Albera S.L.', 'Girona', 'PG Poligono Industrial La Campa 5', '00-000', 'Girona', '', '5263125486', 'OPG', 'umorzono', '2020-03-25 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(278, 30442, 'OIL ENTERPRISE Sp. z o.o.', 'Kraków', 'ul. Stanisława Kunickiego 5/201', '30-134', 'Kraków', 'małopolskie', '6772403103', 'OPC', 'umorzono', '2016-09-14 00:00:00', 'udzielenie koncesji', ''),
-(279, 23214, 'OIL TRADE Sp. z o.o.', 'Kostrzyn nad Odrą', 'ul. Żeglarska 31/6', '66-470', 'Kostrzyn nad Odrą', 'lubuskie', '5993166078', 'OPC', 'umorzono', '2016-09-27 00:00:00', 'udzielenie koncesji', ''),
-(280, 30567, 'Oildex Energy sp. z o.o.', 'Wrocław', 'ul. Kiełbaśnicza 3/4', '50-106', 'Wrocław', 'dolnośląskie', '8971822507', 'OPC', 'umorzono', '2016-09-22 00:00:00', 'udzielenie koncesji', ''),
-(281, 55, 'Oktan Energy & V/L Service Sp. z o.o.', 'Szczecin', 'Hryniewieckiego 1', '70-606', 'Szczecin', 'zachodniopomorskie', '9552029087', 'WPC', 'umorzono', '2016-09-26 00:00:00', 'udzielenie koncesji', ''),
-(282, 23373, 'OLGAS Anna Krzykwa', 'Olecko', 'ul. Ełcka 2', '19-400', 'Olecko', 'warmińsko-mazurskie', '8471385191', 'OPC', 'umorzono', '2017-03-13 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(283, 28144, 'ON PLUS Sp. z o.o.', 'Lipka', 'Wielki Buczek nr 5', '77-420', 'Lipka', 'wielkopolskie', '7671702141', 'OPC', 'umorzono', '2016-09-27 00:00:00', 'udzielenie koncesji', ''),
-(284, 33305, 'ONICO OIL S.A.', 'Warszawa', 'Al. Jerozolimskie 200 / 346', '02-486', 'Warszawa', 'mazowieckie', '7010508324', 'OPC', 'umorzono', '2017-12-08 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(285, 26947, 'Orema sp. z o.o.', 'Kraków', 'ul. Ks. Bp. Władysława Bandurskiego 66/4', '31-515', 'Kraków', 'małopolskie', '6751531209', 'OPC', 'umorzono', '2016-09-21 00:00:00', 'udzielenie koncesji', ''),
-(286, 28282, 'OREONA LTD', 'Nikozja, Republika Cypryjska', 'Dimofontos 7', '1075', 'Nikozja, Republika Cypryjska', '', '', 'OPC', 'umorzono', '2016-09-12 00:00:00', 'udzielenie koncesji', ''),
-(287, 28282, 'OREONA LTD', 'Nikozja, Republika Cypryjska', 'Dimofontos 7', '1075', 'Nikozja, Republika Cypryjska', '', '', 'OPZ', 'umorzono', '2016-09-12 00:00:00', 'udzielenie koncesji', ''),
-(288, 9876, 'Orlen Oil Spółka z ograniczoną odpowiedzialnością', 'Gdańsk', 'ul. Elbląska 135', '80-718', 'Gdańsk', 'pomorskie', '6751190702', 'WPC', 'umorzono', '2017-08-03 00:00:00', 'udzielenie koncesji (*)', 'art. 105 § 1 kpa'),
-(289, 24417, 'OZOIL Sp. z o.o.', 'Szczecin', 'ul. Bohaterów Warszawy 47', '70-342', 'Szczecin', 'zachodniopomorskie', '8522607946', 'OPC', 'umorzono', '2016-09-27 00:00:00', 'udzielenie koncesji', ''),
-(290, 33378, 'P.H.U. M&J Auto Marcin Żórański', 'Kamienica Polska', 'ul. Topolowa 25', '42-260', 'Wanaty', 'śląskie', '9490993118', 'OPC', 'umorzono', '2017-06-14 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(291, 17136, 'P.W. MAX - GAZ Janusz Abucki', 'Głogów', 'ul. Magazynowa 7', '67-200', 'Głogów', 'dolnośląskie', '6931138287', 'OPC', 'umorzono', '2016-09-28 00:00:00', 'udzielenie koncesji', ''),
-(292, 70119, 'Paged Energy Spółka Akcyjna', 'Warszawa', 'Emilii Plater 53', '00-113', 'Warszawa', 'mazowieckie', '5252880983', 'DEE', 'umorzono', '2023-10-12 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(293, 28354, 'PALMAX Sp. z o.o.', 'Rypin', 'Bielawki 16', '87-500', 'Rypin', 'kujawsko-pomorskie', '8921482334', 'OPC', 'umorzono', '2016-09-23 00:00:00', 'udzielenie koncesji', ''),
-(294, 28091, 'Paltrade Sp. z o.o.', 'Zduńska Wola', 'Wojsławice 118', '98-200', 'Zduńska Wola', 'łódzkie', '8291738920', 'OPC', 'umorzono', '2016-10-04 00:00:00', 'udzielenie koncesji', ''),
-(295, 13177, 'Paul Klacska Polska Sp. z o.o.', 'Piaseczno', 'ul. Świętojańska 5', '05-500', 'Piaseczno', 'mazowieckie', '1230456968', 'PPC', 'umorzono', '2017-07-25 00:00:00', 'udzielenie koncesji (*)', 'art. 105 § 1 kpa'),
-(296, 28361, 'Paweł Szmagaj \\MENOS\\', 'Grodzisk Mazowiecki', 'ul. T. Bairda 46/5', '05-825', 'Grodzisk Mazowiecki', 'mazowieckie', '5342276707', 'OPC', 'umorzono', '2016-09-27 00:00:00', 'udzielenie koncesji', ''),
-(297, 32161, 'PCC Consumer Products Czechowice SA', 'Czechowice-Dziedzice', 'ul. Łukasiewicza 5', '43-502', 'Czechowice-Dziedzice', 'śląskie', '6520004705', 'OPC', 'umorzono', '2017-06-05 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(298, 64215, 'PCWO Energy Projekt Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Emilii Plater 53', '00-118', 'Warszawa', 'mazowieckie', '5252680592', 'WEE', 'umorzono', '2021-11-22 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(299, 64215, 'PCWO Energy Projekt Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Emilii Plater 53', '00-118', 'Warszawa', 'mazowieckie', '5252680592', 'WEE', 'umorzono', '2021-11-22 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(300, 60961, 'PCWO Energy PV 2 sp. z o.o.', 'Kielce', 'ul. św. Leonarda 9', '25-311', 'Kielce', 'świętokrzyskie', '6572937567', 'WEE', 'umorzono', '2021-11-02 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(301, 69859, 'PCWO Energy PV 3 sp. z o.o.', 'Kielce', 'ul. św. Leonarda 9', '25-311', 'Kielce', 'świętokrzyskie', '6572937573', 'WEE', 'umorzono', '2021-11-02 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(302, 69881, 'PCWO Energy PV 30 sp. z o.o.', 'Kielce', 'ul. św. Leonarda 9', '25-311', 'Kielce', 'świętokrzyskie', '6572937751', 'WEE', 'umorzono', '2021-11-02 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(303, 49545, 'PCWO Energy PV 33 sp. z o.o.', 'Kielce', 'ul. św. Leonarda 7', '25-311', 'Kielce', 'świętokrzyskie', '6572934617', 'WEE', 'umorzono', '2021-11-02 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(304, 49547, 'PCWO Energy PV 34 sp. z o.o.', 'Kielce', 'ul. Sienkiewicza 46', '25-507', 'Kielce', 'świętokrzyskie', '9592000380', 'WEE', 'umorzono', '2021-11-02 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(305, 59946, 'PCWO Energy PV 35 sp. z o.o.', 'Kielce', 'ul. św. Leonarda 9', '25-311', 'Kielce', 'świętokrzyskie', '6631868863', 'WEE', 'umorzono', '2021-11-02 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(306, 59947, 'PCWO Energy PV 36 sp. z o.o.', 'Kielce', 'ul. św. Leonarda 9', '25-311', 'Kielce', 'świętokrzyskie', '6572910746', 'WEE', 'umorzono', '2021-11-02 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(307, 49546, 'PCWO Energy PV 37 sp. z o.o.', 'Kielce', 'ul. św. Leonarda 9', '25-311', 'Kielce', 'świętokrzyskie', '6572934698', 'WEE', 'umorzono', '2021-11-02 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(308, 49548, 'PCWO Energy PV 46 sp. z o.o.', 'Kielce', 'ul. św. Leonarda 7', '25-311', 'Kielce', 'świętokrzyskie', '6572934646', 'WEE', 'umorzono', '2021-11-02 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(309, 49548, 'PCWO Energy PV 46 sp. z o.o.', 'Kielce', 'ul. św. Leonarda 7', '25-311', 'Kielce', 'świętokrzyskie', '6572934646', 'WEE', 'umorzono', '2021-11-02 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(310, 19718, 'PEGAS GRUPA Sp. z o.o.', 'Promna', 'ul. Górna 1', '26-803', 'Promna', 'mazowieckie', '7981465273', 'OPZ', 'umorzono', '2021-02-17 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(311, 71059, 'PELOTON TRADING COMPANY Sp. z o.o.', 'Warszawa', 'Stawki 2A / 1', '00-193', 'Warszawa', 'mazowieckie', '9522200524', 'OPC', 'umorzono', '2023-06-28 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(312, 30659, 'PELTO Sp. z o.o.', 'Radomsko', 'ul. Sucharskiego 49', '97-500', 'Radomsko', 'łódzkie', '7722408493', 'OPC', 'umorzono', '2016-09-19 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(313, 69867, 'PERITUS OIL GROUP Spółka z ograniczoną odpowiedzialnością', 'Babice', 'ul. Wieczysta 50', '32-555', 'Zagórze', 'małopolskie', '6282267727', 'OPC', 'umorzono', '2022-10-04 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(314, 30582, 'PERŁA OIL Sp. z o.o.', 'Piotrków Trybunalski', 'ul. Łódzka 20 A, B', '97-300', 'Piotrków Trybunalski', 'łódzkie', '7712885783', 'OPC', 'umorzono', '2016-09-26 00:00:00', 'udzielenie koncesji', ''),
-(315, 4020, 'PERN Spółka akcyjna', 'Płock', 'ul. Wyszogrodzka 133', '09-400', 'Płock', 'mazowieckie', '7740003097', 'MPC', 'umorzono', '2016-09-12 00:00:00', 'udzielenie koncesji', ''),
-(316, 4020, 'PERN Spółka akcyjna', 'Płock', 'ul. Wyszogrodzka 133', '09-400', 'Płock', 'mazowieckie', '7740003097', 'OPZ', 'umorzono', '2022-09-26 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(317, 23887, 'PETRO MAX S.A. S.K.A.', 'Poznań', 'ul. Wodna 11/3', '61-782', 'Poznań', 'wielkopolskie', '9241902967', 'OGZ', 'umorzono', '2023-07-28 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(318, 23887, 'PETRO MAX S.A. S.K.A.', 'Poznań', 'ul. Wodna 11/3', '61-782', 'Poznań', 'wielkopolskie', '9241902967', 'OPG', 'umorzono', '2023-07-28 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(319, 28221, 'Petro Oil sp. z o.o.', 'Bolesław', 'ul. Wyzwolenia 1H', '32-329', 'Bolesław', 'małopolskie', '6751540160', 'OPC', 'umorzono', '2016-09-21 00:00:00', 'udzielenie koncesji', ''),
-(320, 32171, 'PETROKAN OIL Spółka z ograniczoną odpowiedzialnością', 'Włocławek', 'ul. Al. Chopina 2/4', '87-800', 'Włocławek', 'kujawsko-pomorskie', '8883125884', 'OPC', 'umorzono', '2017-11-06 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(321, 28343, 'PETROLEUM INVEST Sp. z o.o.', 'Poznań', 'ul. Lechicka 59a lok 1', '61-695', 'Poznań', '', '9721263384', 'OPC', 'umorzono', '2016-09-28 00:00:00', 'udzielenie koncesji', ''),
-(322, 30583, 'PETROLOMO Sp. z o.o.', 'Łódź', 'ul. Rewolucji 1905 r. nr 82', '90-223', 'Łódź', 'łódzkie', '7252088771', 'OPC', 'umorzono', '2016-10-10 00:00:00', 'udzielenie koncesji', ''),
-(323, 69244, 'PETROLUKI SPÓŁKA Z OGRANICZONA ODPOWIEDZIALNOSCIA', 'Kalisz', 'ul. Obozowa 4', '62-800', 'Kalisz', 'wielkopolskie', '6182148242', 'OPC', 'umorzono', '2021-06-24 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(324, 28364, 'Petrolus sp. z o.o.', 'Wrocław', 'ul. Bierutowska 15/8', '51-317', 'Wrocław', 'dolnośląskie', '8952077623', 'OPC', 'umorzono', '2016-10-04 00:00:00', 'udzielenie koncesji', ''),
-(325, 23237, 'PetroPower Sp. z o.o.', 'Przasnysz', 'Sierakowo 55', '06-300', 'Przasnysz', 'mazowieckie', '7611556026', 'OPZ', 'umorzono', '2016-09-12 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(326, 28336, 'PETROSALE Sp. z o.o.', 'Warszawa', 'ul. Biała 4 lok. 81', '00-895', 'Warszawa', 'mazowieckie', '5272767089', 'OPC', 'umorzono', '2016-09-26 00:00:00', 'udzielenie koncesji', ''),
-(327, 30624, 'Petrotruck Sp. z o.o.', 'Warszawa', 'ul. Marii Kazimiery 48A', '01-641', 'Warszawa', 'mazowieckie', '5252671096', 'OPC', 'umorzono', '2016-10-06 00:00:00', 'udzielenie koncesji', ''),
-(328, 28120, 'PETROX PLUS Sp. z o.o.', 'Bydgoszcz', 'ul. Zygmunta Augusta 14 lok. 9', '85-082', 'Bydgoszcz', 'kujawsko-pomorskie', '9671369665', 'OPC', 'umorzono', '2016-09-27 00:00:00', 'udzielenie koncesji', ''),
-(329, 24281, 'PGJ ENERGIA Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Husarii 41', '02-951', 'Warszawa', 'mazowieckie', '1132870626', 'OEE', 'umorzono', '2018-06-11 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(330, 20775, 'PGNIG Supply & Trading GmbH', 'Monachium', 'Arnulfstraße 19', '80335', 'Monachium', '', 'DE275882757', 'OGZ', 'umorzono', '2017-01-30 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(331, 70400, 'PGNIG SUPPLY&TRADING POLSKA Sp. z o.o.', 'Warszawa', 'ul. M. Kasprzaka 25', '01-224', 'Warszawa', 'mazowieckie', '5272995695', 'OPG', 'umorzono', '2022-10-21 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(332, 8069, 'PGNiG Termika Energetyka Rozproszona Spółka z ograniczoną odpowiedzialnością', 'Wrocław', 'Plac Solidarności 1/3/5', '53-661', 'Wrocław', 'dolnośląskie', '6151814382', 'DPG', 'umorzono', '2021-12-22 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(333, 64659, 'PH Starmex Sp. z o.o.', 'Grodzis Mazowiecki', 'Żyrardowska 3E', '05-825', 'Grodzis mazowiecki', 'mazowieckie', '5291824776', 'OPC', 'umorzono', '2019-05-21 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(334, 24828, 'PHU A&S Joanna Lachowicz, Sławomir Błazewicz Spółka Cywilna', 'Jagłowice', 'Jagłowice 28', '68-2012', 'Jagłowice', 'lubuskie', '9282080864', 'OPC', 'umorzono', '2016-09-27 00:00:00', 'udzielenie koncesji', ''),
-(335, 28349, 'PHU Bielcem Radosław Kołodziej', 'Bielsko-Biała', 'ul. Londzina 29', '43-300', 'Bielsko-Biała', 'śląskie', '5471949255', 'OPC', 'umorzono', '2016-09-05 00:00:00', 'udzielenie koncesji', ''),
-(336, 30544, 'PHU Paweł Sierocki', 'Kutno', 'Malina 82', '99-300', 'Malina', 'łódzkie', '7751498369', 'OPC', 'umorzono', '2016-09-12 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(337, 17179, 'PHU ZAP Zdzisław Pokład', 'Bogatynia', 'ul. Białogórska 30', '59-920', 'Bogatynia', 'dolnośląskie', '6150029037', 'OPC', 'umorzono', '2019-10-25 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(338, 59933, 'Piotr Głowacki \\TELESFOR\\ Transport Osobowo-Towarowy', 'Łapanów', 'Kobylec 91', '32-740', 'Łapanów', 'małopolskie', '8681010215', 'OPC', 'umorzono', '2022-04-13 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(339, 15206, 'Piotr Kalkowski Firma Handlowo-Usługowa CLIMATRONIX', 'Kwidzyn', 'Obory 21A', '82-500', 'Kwidzyn', 'pomorskie', '5811775795', 'OPC', 'umorzono', '2018-11-27 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(340, 18113, 'Piotr Kozak Przedsiębiorstwo Handlowo-Usługowe BUD-POL', 'Sędziszów Małopolski', 'ul. Grobla 19', '39-120', 'Sędziszów Małopolski', 'podkarpackie', '8181000538', 'OPC', 'umorzono', '2016-09-14 00:00:00', 'udzielenie koncesji', ''),
-(341, 4081, 'PKS w Bielsku-Białej S.A.', 'Czechowice-Dziedzice', 'ul. Traugutta 11', '43-502', 'Czechowice-Dziedzice', 'śląskie', '5470049147', 'OPC', 'umorzono', '2017-09-11 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(342, 9424, 'Polmax Spółka akcyjna Spółka komandytowo-akcyjna', 'Świebodzin', 'ul. Poznańska 58', '66-200', 'Świebodzin', 'lubuskie', '9270101000', 'OGZ', 'umorzono', '2023-10-02 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(343, 9424, 'Polmax Spółka akcyjna Spółka komandytowo-akcyjna', 'Świebodzin', 'ul. Poznańska 58', '66-200', 'Świebodzin', 'lubuskie', '9270101000', 'OPZ', 'umorzono', '2021-07-07 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(344, 43230, 'POLSKIE FABRYKI PORCELANY \\ĆMIELÓW\\ I \\CHODZIEŻ\\ SPÓŁKA AKCYJNA', 'Ćmielów', 'ul. Ostrowiecka 45', '27-440', 'Ćmielów', 'świętokrzyskie', '7640001526', 'OEE', 'umorzono', '2019-01-07 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(345, 26291, 'Power Contakt Company Sp. zo.o.', 'Warszawa', 'ul. Przydrożna 27A', '03-253', 'Warszawa', 'mazowieckie', '5242782368', 'OPC', 'umorzono', '2016-09-27 00:00:00', 'udzielenie koncesji', ''),
-(346, 65135, 'Powermodul Spółka z ograniczoną odpowiedzialnością', 'Suwałki', 'ul. Reja 54b', '16-400', 'Suwałki', 'podlaskie', '8442357507', 'WEE', 'umorzono', '2021-11-08 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(347, 26274, 'PPHU Naftotrade sp. z o.o.', 'Dąbrowa Górnicza', 'ul. Konopnickiej 57D', '41-300', 'Dąbrowa Górnicza', 'śląskie', '6292472179', 'OPC', 'umorzono', '2016-09-08 00:00:00', 'udzielenie koncesji', ''),
-(348, 23046, 'PPUH AUTOPART Jacek Bąk Sp. z o.o.', 'Mielec', 'ul.Kwiatkowskiego 2a', '39-300', 'Mielec', 'podkarpackie', '8172017315', 'OEE', 'umorzono', '2020-04-21 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(349, 65617, 'PRODUCENT DRZWI \\BARAŃSKI\\ SP. J. IGNACY BARAŃSKI I ZBIGNIEW BARAŃSKI', 'Susz', 'Babięty Wielkie 54', '14-240', 'Susz', 'warmińsko-mazurskie', '5811515048', 'WEE', 'umorzono', '2021-12-15 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(350, 19013, 'Promet-Plast Spółka Cywilna Elżbieta Jeżewska, Andrzej Jeżewski', 'Oława', 'Gaj Oławski 21A', '55-200', 'Oława', 'dolnośląskie', '9120001797', 'WEE', 'umorzono', '2020-02-06 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(351, 28341, 'PROMOBIL FLEET Sp. z o.o.', 'Poznan', 'Karola Libelta 29 / 8', '61-707', 'Poznań', 'wielkopolskie', '7822459797', 'OPC', 'umorzono', '2016-09-22 00:00:00', 'udzielenie koncesji', ''),
-(352, 64358, 'ProTec Ingredia Polska Sp. z o.o.', 'Warszawa', 'ul. Berezyńska 6A / 1', '03-904', 'Warszawa', 'mazowieckie', '1132831922', 'OPC', 'umorzono', '2020-07-02 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(353, 28323, 'Proxima-Petrol sp. z o.o.', 'Skoczów', 'ul. Cieszyńska 25', '43-430', 'Skoczów', 'śląskie', '5482675100', 'OPC', 'umorzono', '2016-09-07 00:00:00', 'udzielenie koncesji', ''),
-(354, 13746, 'PRZEDSIEBIORSTWO HANDLOWO USŁUGOWE \\ ROMEX\\ Roman Zagórski', 'Szydłowiec', 'ul. Browarska 11', '26-500', 'Szydłowiec', 'mazowieckie', '7990009184', 'OPC', 'umorzono', '2016-09-16 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(355, 14225, 'Przedsiebiorstwo Handlowo Usługowe ŻAR, Arkadiusz Saczewski', 'Siedlce', 'ul. Sokołowska 159A', '08-110', 'Siedlce', 'mazowieckie', '8212263843', 'MPC', 'umorzono', '2017-05-22 00:00:00', 'udzielenie koncesji (*)', 'art. 105 § 1 kpa'),
-(356, 434, 'Przedsiębiorstwo Energetyki Cieplnej w Mławie Sp. z o.o', 'Mława', 'ul. Powstańców Styczniowych 3', '06-500', 'Mława', 'mazowieckie', '5690002805', 'OCC', 'umorzono', '2017-03-14 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(357, 32079, 'Przedsiębiorstwo Handlowo Usługowe \\Polteam\\ Krzysztof Gałuszka', 'Knurów', 'ul. Szpitalna 8', '44-190', 'Knurów', 'śląskie', '9690040512', 'OPC', 'umorzono', '2017-08-21 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(358, 32079, 'Przedsiębiorstwo Handlowo Usługowe \\Polteam\\ Krzysztof Gałuszka', 'Knurów', 'ul. Szpitalna 8', '44-190', 'Knurów', 'śląskie', '9690040512', 'OPZ', 'umorzono', '2017-08-21 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(359, 30635, 'Przedsiębiorstwo Handlowo-Usługowe \\KASPOL-BIS\\ Jadwiga Skorupa', 'Kowala- Stępocina', 'Trablice 73A', '26-624', 'Kowala- Stępocina', 'mazowieckie', '7961841655', 'OPC', 'umorzono', '2016-09-20 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(360, 26534, 'Przedsiębiorstwo Handlowo-Usługowe GAZTEL Damian Głębocki', 'Łomża', 'ul. Szmaragdowa 5 / 12', '18-400', 'Łomża', 'podlaskie', '7182130774', 'OPC', 'umorzono', '2016-09-23 00:00:00', 'udzielenie koncesji', ''),
-(361, 358, 'PRZEDSIĘBIORSTWO KOMUNALNE GMINY KONSTANTYNÓW ŁÓDZKI Sp. z o.o.', 'Konstantynów Łódzki', 'ul. Jana Pawła II 44', '95-050', 'Konstantynów Łódzki', 'łódzkie', '7270126080', 'WCC', 'umorzono', '2018-10-31 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(362, 24634, 'Przedsiębiorstwo Produkcji Różnej Handlu i Usług Progres Sp. z o.o.', 'Warszawa', 'ul. Grzybowska 3 / U8', '00-132', 'Warszawa', 'mazowieckie', '5840203742', 'OGZ', 'umorzono', '2016-12-22 00:00:00', 'udzielenie koncesji', 'art. 22 ustawy z 22.07.2016 r. (Dz. U. 2016 p. 1165)'),
-(363, 8269, 'Przedsiębiorstwo Produkcyjno-Handlowe \\WOTEX\\ Wojciech Gąska', 'Kraśnik', 'ul. Przemysłowa 24', '23-200', 'Kraśnik', 'lubelskie', '7150400696', 'OPC', 'umorzono', '2016-09-23 00:00:00', 'udzielenie koncesji', ''),
-(364, 8262, 'Przedsiębiorstwo Produkcyjno-Handlowo-Usługowe Jolanta Ewa Rucińska', 'Kłodawa', 'ul. Bierzwieńska 20', '62-650', 'Kłodawa', 'wielkopolskie', '6661122039', 'OPC', 'umorzono', '2016-09-19 00:00:00', 'udzielenie koncesji', ''),
-(365, 20909, 'Przedsiębiorstwo Rolno-Spożywcze Lech Rutkowski', 'Chełmno', 'Kałdus 16', '86-200', 'Chełmno', 'kujawsko-pomorskie', '8750001373', 'WPC', 'umorzono', '2016-09-13 00:00:00', 'udzielenie koncesji', ''),
-(366, 14828, 'Przedsiębiorstwo Transportowo - Handlowe \\Auto-Benz\\ Sp. z o.o.', 'Gorzów Wielkopolski', 'ul. Niemcewicza 31', '66-400', 'Gorzów Wielkopolski', 'lubuskie', '5993144065', 'OPC', 'umorzono', '2020-08-12 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(367, 12670, 'Przedsiębiorstwo Transportowo Handlowo Usługowe \\Mako-Trans\\ sp. z o.o.', 'Zabrze', 'ul. Makoszowska 16A', '41-800', 'Zabrze', 'śląskie', '6480016724', 'OPC', 'umorzono', '2018-10-08 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(368, 22927, 'Przedsiębiorstwo Usługowo - Handlowe Lena Meyer', 'Borne Sulinowo', 'ul. Wojska Polskiego 5', '78 - 449', 'Borne Sulinowo', 'zachodniopomorskie', '6730003729', 'OPC', 'umorzono', '2016-09-27 00:00:00', 'udzielenie koncesji', ''),
-(369, 1835, 'PRZEDSIĘBIORSTWO USŁUGOWO HANDLOWE MARPOL PAWEŁ KOTOWICZ', 'Łowicz', 'ul. Płocka 1', '99-400', 'Łowicz', 'łódzkie', '8341519919', 'OPC', 'umorzono', '2022-06-23 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(370, 16147, 'Przedsiębiorstwo Usługowo-Handlowe ART-MAG Małgorzata Suszek', 'Końskowola', 'Nowy Pożóg 36A', '24-130', 'Końskowola', 'lubelskie', '7141202502', 'OPC', 'umorzono', '2016-09-15 00:00:00', 'udzielenie koncesji', ''),
-(371, 10154, 'Przedsiębiorstwo Wielobranżowe \\BISS\\ Grażyna Zachoszcz, Mirosław Zachoszcz Sp.j.', 'Połczyn Zdrój', 'ul. Młynarska 11', '78-320', 'Połczyn Zdrój', 'zachodniopomorskie', '6721394618', 'OPC', 'umorzono', '2016-09-28 00:00:00', 'udzielenie koncesji', ''),
-(372, 16681, 'Przedsiębiorstwo Wielobranżowe \\HENPOL\\ Henryk Pędziwiatr', 'Kiełczygłów', 'Osina Duża 13', '98-358', 'Osina Duża', 'łódzkie', '8321719325', 'OPC', 'umorzono', '2016-09-16 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(373, 28416, 'PRZEDSIĘBIORSTWO WIELOBRANŻOWE LOT-TANK KAROL JANKOWSKI', 'Piła', 'ul. Szybowników 9', '64-920', 'Piła', 'wielkopolskie', '7642593531', 'OPC', 'umorzono', '2016-09-21 00:00:00', 'udzielenie koncesji', ''),
-(374, 26253, 'PRZEDSIĘBIORSTWO WIELOBRANŻOWE PALTEX Sp. z o.o', 'Wałbrzych', 'ul. Daszyńskiego 11', '58-304', 'Wałbrzych', 'dolnośląskie', '8862984079', 'OPC', 'umorzono', '2016-10-04 00:00:00', 'udzielenie koncesji', ''),
-(375, 64996, 'Przedsiębiorstwo Wielobranżowe Rafał Ekert', 'Kazuń Bielany', 'Kampinowska 37', '05-152', 'Kazuń Bielany', 'mazowieckie', '5311510272', 'OPC', 'umorzono', '2020-02-24 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(376, 30608, 'Przemysław Królak', 'Cielądz', 'Cielądz 108', '96-214', 'Cielądz', 'łódzkie', '8351426332', 'OPC', 'umorzono', '2016-09-26 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(377, 1309, 'Pucka Gospodarka Komunalna Sp. z o.o.', 'Puck', 'Zamkowa 6', '84-100', 'Puck', 'pomorskie', '5870200062', 'WCC', 'umorzono', '2018-11-09 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(378, 55797, 'PV Sol 2 Spółka z ograniczoną odpowiedzialnością', 'Kraków', 'ul. Warszawska 1 / 5', '31-155', 'Kraków', 'małopolskie', '6762519086', 'WEE', 'umorzono', '2021-11-29 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(379, 49579, 'PV Sol 3 Spółka z ograniczoną odpowiedzialnością', 'Kraków', 'ul. Warszawska 1 / 5', '31-155', 'Kraków', 'małopolskie', '6762516685', 'WEE', 'umorzono', '2021-11-29 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(380, 64737, 'PV Sol 4 Spółka z ograniczoną odpowiedzialnością', 'Kraków', 'ul. Warszawska 1 / 5', '31-155', 'Kraków', 'małopolskie', '6762546841', 'WEE', 'umorzono', '2021-11-29 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(381, 68650, 'PV Wolsztyn Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Puławska 2', '02-566', 'Warszawa', 'mazowieckie', '7811997278', 'WEE', 'umorzono', '2023-03-31 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(382, 65159, 'PVE 15 Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Tytusa Chałubińskiego 8', '00-613', 'Warszawa', 'mazowieckie', '9671395326', 'WEE', 'umorzono', '2021-11-26 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(383, 64301, 'PVE 17 Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Taneczna 18', '02-829', 'Warszawa', 'mazowieckie', '9671404479', 'WEE', 'umorzono', '2021-11-25 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(384, 69434, 'PVE 171 Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Ludwika Wryńskiego 3A/III P', '00-645', 'Warszawa', 'mazowieckie', '9671437616', 'WEE', 'umorzono', '2024-01-16 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(385, 64905, 'PVE 2 Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Taneczna 18', '02-829', 'Warszawa', 'mazowieckie', '9671392606', 'WEE', 'umorzono', '2021-11-22 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(386, 65208, 'PVE 29 Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Taneczna 18', '02-829', 'Warszawa', 'mazowieckie', '9671427664', 'WEE', 'umorzono', '2021-11-25 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(387, 65156, 'PVE 33 Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'Taneczna 18', '02-829', 'Warszawa', 'mazowieckie', '9671428184', 'WEE', 'umorzono', '2021-11-24 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(388, 68697, 'PVE 41 Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Ludwika Waryńskiego 3A/III P', '00-645', 'Warszawa', 'mazowieckie', '9671429901', 'WEE', 'umorzono', '2024-01-16 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(389, 65271, 'PVE 46 Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Taneczna 18', '02-829', 'Warszawa', 'mazowieckie', '9671430264', 'WEE', 'umorzono', '2021-11-23 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(390, 64919, 'PVSE 1 Sp. z o.o.', 'Warszawa', 'ul. Taneczna 18', '02-829', 'Warszawa', 'mazowieckie', '5252774672', 'WEE', 'umorzono', '2021-11-25 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(391, 65138, 'PVSE 2 Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Taneczna 18', '02-829', 'Warszawa', 'mazowieckie', '5252774413', 'WEE', 'umorzono', '2021-11-24 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(392, 65283, 'QPV KP2 sp. z o.o.', 'Wrocław', 'ul. Wagonowa 2c', '53-609', 'Wrocław', 'dolnośląskie', '9452173241', 'WEE', 'umorzono', '2021-11-08 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(393, 24569, 'QSUN 25 Sp. z o.o.', 'Wrocław', 'ul. Leszczyńskiego 4 / 29', '50-078', 'Wrocław', 'dolnośląskie', '9151792682', 'WEE', 'umorzono', '2021-11-08 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(394, 43024, 'QWP Stawiszyn sp. z o.o.', 'Wrocław', 'ul. Wagonowa 2C', '53-609', 'Wrocław', 'dolnośląskie', '8513167057', 'WEE', 'umorzono', '2023-08-28 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(395, 41939, 'QWP Widuchowa sp. z o.o.', 'Wrocław', 'ul. Wagonowa 2c', '53-609', 'Wrocław', 'dolnośląskie', '8513144932', 'WEE', 'umorzono', '2023-08-28 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(396, 64145, 'QWP Wisznice sp. z o.o.', 'Wrocław', 'ul. Wagonowa 2c', '53-609', 'Wrocław', 'dolnośląskie', '5372508766', 'WEE', 'umorzono', '2022-06-01 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(397, 11076, 'Rafał Sieńko \\LUSKAR-1\\ Transport i Handel', 'Kraków', 'ul. Płk. Dąbka 4', '30-832', 'Kraków', 'małopolskie', '6782677842', 'OPC', 'umorzono', '2016-09-19 00:00:00', 'udzielenie koncesji', ''),
-(398, 28187, 'RAFINOPOL Sp. z o.o.', 'Poznań', 'ul. Lechicka 59 A lok. 106', '61-695', 'Poznań', 'wielkopolskie', '9721263355', 'OPC', 'umorzono', '2016-09-20 00:00:00', 'udzielenie koncesji', ''),
-(399, 30479, 'RASPET Sp. z o.o.', 'Poznań', 'ul. Święty Marcin 29 lok 8', '61-806', 'Poznań', 'wielkopolskie', '7831744273', 'OPC', 'umorzono', '2016-09-30 00:00:00', 'udzielenie koncesji', ''),
-(400, 28025, 'Rawski Sp. z o.o.', 'Józefów', 'ul. Graniczna 21B', '05-410', 'Józefów', 'mazowieckie', '5322056233', 'MPC', 'umorzono', '2022-12-22 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(401, 28116, 'REN-TRADE Sp. z o.o.', 'Bydgoszcz', 'ul. Magazynowa 11 lok. 20', '85-790', 'Bydgoszcz', 'kujawsko-pomorskie', '5542934977', 'OPC', 'umorzono', '2016-09-27 00:00:00', 'udzielenie koncesji', ''),
-(402, 29442, 'REPAL Sp. z o.o.', 'Stupsk', 'ul. Mickiewicza 81', '06-561', 'Stupsk', 'mazowieckie', '5691878379', 'OPC', 'umorzono', '2016-09-23 00:00:00', 'udzielenie koncesji', ''),
-(403, 18702, 'Respect Energy Wind Wicko Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Ludwika Rydygiera 8', '01-793', 'Warszawa', 'mazowieckie', '7491911328', 'DEE', 'umorzono', '2023-09-01 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(404, 30528, 'RTK ENERGIA Sp. z o.o.', 'Grodzisk Mazowiecki', 'ul. 3 Maja 28HB', '05-827', 'Grodzisk Mazowiecki', 'mazowieckie', '5291812431', 'OPC', 'umorzono', '2016-09-23 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(405, 64283, 'RTM Spółka z ograniczoną odpowiedzialnością', 'Kwilcz', 'Prusim 5', '64-420', 'Prusim', 'wielkopolskie', '5951450691', 'WEE', 'umorzono', '2021-11-10 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(406, 18141, 'Sabina Kucypera Przedsiębiorstwo Handlowo-Usługowe \\POL-SAB\\', 'Charsznica', 'ul. Miechowska 19a', '32-250', 'Miechów-Charsznica', 'małopolskie', '6821194600', 'OPC', 'umorzono', '2016-09-15 00:00:00', 'udzielenie koncesji', ''),
-(407, 30623, 'SAM-ART Artur Rogoziński', 'Łęczyca', 'Borki 76A', '99-100', 'Łęczyca', 'łódzkie', '8281303209', 'OPC', 'umorzono', '2016-09-27 00:00:00', 'udzielenie koncesji', ''),
-(408, 30483, 'Sankowski Roman \\P.H.U. ROMEX\\', 'Belsk Duży', 'Wola Starowiejska 20', '05-622', 'Belsk Duży', 'mazowieckie', '7970004597', 'OPC', 'umorzono', '2016-09-12 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(409, 28316, 'Sara Markowska', 'Gorzów Wielkopolski', 'ul. Poznańska 121', '66-400', 'Gorzów Wielkopolski', 'lubuskie', '5993184314', 'OPC', 'umorzono', '2016-09-23 00:00:00', 'udzielenie koncesji', ''),
-(410, 394, 'SEC Dębno Sp. z o.o.', 'Dębno', 'Waryńskiego 48A', '74-400', 'Dębno', 'zachodniopomorskie', '5970002775', 'PCC', 'umorzono', '2018-11-19 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(411, 28373, 'SELECT COMPANY Sp. z o o.', 'Poznań', 'ul. Lechicka 9A lok. 5', '61-695', 'Poznań', 'wielkopolskie', '9721264366', 'OPC', 'umorzono', '2016-09-20 00:00:00', 'udzielenie koncesji', ''),
-(412, 21330, 'SICH POLSKA Ewa Chorążewicz', 'Miedzyrzecz', 'Skoki 12', '66-300', 'Międzyrzecz', 'lubuskie', '5961534544', 'WEE', 'umorzono', '2019-01-10 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(413, 26668, 'Signa Invest sp. z o.o.', 'Wrocław', 'ul. Tadeusza Kościuszki 135/215', '50-440', 'Wrocław', 'dolnośląskie', '8992776095', 'OPC', 'umorzono', '2016-09-29 00:00:00', 'udzielenie koncesji', ''),
-(414, 21021, 'Silkom sp. z o.o.', 'Katowice', 'ul. Porcelanowa 19', '40-085', 'Katowice', 'śląskie', '6342798429', 'OPZ', 'umorzono', '2016-09-23 00:00:00', 'udzielenie koncesji', ''),
-(415, 70595, 'Sklep Spożywczo-­Przemysłowy Józef Michoński', 'Aleksandrów', 'Aleksandrów 93', '23-408', 'Aleksandrów', 'lubelskie', '9180002205', 'OPC', 'umorzono', '2022-09-27 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(416, 30629, 'Sklep Spożywczo-Przemysłowy Niwa Marian', 'Dolice', 'ul. Wojska Polskiego 15A', '73-115', 'Dolice', 'zachodniopomorskie', '8531113681', 'OPC', 'umorzono', '2016-09-21 00:00:00', 'udzielenie koncesji', ''),
-(417, 70777, 'Sklep Spożywczo-Przemysłowy s.c. Edyta Jasna, Euzebiusz Jasny', 'Jelenia Góra', 'Wojanów 35', '58-508', 'Jelenia Góra', 'dolnośląskie', '6111120839', 'OPC', 'umorzono', '2023-03-02 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(418, 9105, 'Slovnaft Polska S.A.', 'Kraków', 'ul. Wadowicka 6', '30-415', 'Kraków', 'małopolskie', '6761816480', 'WPC', 'umorzono', '2017-04-04 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(419, 23068, 'Sławomir Podgórski FENIKS', 'Głusk', 'Ćmiłów, ul. Jaśminowa 20', '22-388', 'Głusk', 'lubelskie', '9462352525', 'OPC', 'umorzono', '2016-09-23 00:00:00', 'udzielenie koncesji', ''),
-(420, 69917, 'Solar Park Zamość Piotr Struk Bożena Struk Spółka Cywilna', 'Zamość', 'Płoskie 1', '22-400', 'Płoskie', 'lubelskie', '9223048439', 'WEE', 'umorzono', '2021-11-08 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(421, 28110, 'Solar System Polska sp. z o.o.', 'Wrocław', 'Chińska 3B', '52-118', 'Wrocław', 'dolnośląskie', '8322054224', 'OPC', 'umorzono', '2016-09-23 00:00:00', 'udzielenie koncesji', ''),
-(422, 69885, 'Solarfarm TKG sp. z o.o.', 'Milicz', 'ul. Trzebnicka 36', '56-300', 'Milicz', 'dolnośląskie', '9161394629', 'WEE', 'umorzono', '2021-11-08 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(423, 69282, 'SOLUB 9 sp. z o.o.', 'Gozdnica', 'ul. Iłowiańska 7', '68-130', 'Gozdnica', 'lubuskie', '9241916432', 'DEE', 'umorzono', '2023-01-24 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(424, 69282, 'SOLUB 9 sp. z o.o.', 'Gozdnica', 'ul. Iłowiańska 7', '68-130', 'Gozdnica', 'lubuskie', '9241916432', 'OEE', 'umorzono', '2023-01-24 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(425, 34526, 'SOLUMUS S.A. Energia Sp. k. w likwidacji', 'Warszawa', 'ul. Zdrojowa 40', '02-927', 'Warszawa', 'mazowieckie', '5252661442', 'OEE', 'umorzono', '2020-09-25 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(426, 34526, 'SOLUMUS S.A. Energia Sp. k. w likwidacji', 'Warszawa', 'ul. Zdrojowa 40', '02-927', 'Warszawa', 'mazowieckie', '5252661442', 'OPG', 'umorzono', '2022-01-20 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(427, 43335, 'Solviol 1 Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Marywilska 38/40', '03-228', 'Warszawa', 'mazowieckie', '7010620104', 'WEE', 'umorzono', '2019-07-26 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(428, 30617, 'Sornat Bonifacy Przedsiębiorstwo Transportowo Handlowe \\Trans-Serwis\\', 'Łopuszno', 'ul. Zakładowa 11A', '26-070', 'Łopuszno', 'świętokrzyskie', '6581002066', 'OPC', 'umorzono', '2016-09-06 00:00:00', 'udzielenie koncesji', ''),
-(429, 20050, 'SPEDGAZ, FIRMA HANDLOWO-USŁUGOWA \\DANMAR\\. MARIUSZ ROMANOWSKI', 'Skierniewice', 'Mokra Lewa 17', '96-100', 'Skierniewice', 'łódzkie', '8361137693', 'OPC', 'umorzono', '2016-09-16 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(430, 43166, 'Spółdzielnia \\Leśnianka\\', 'Leśna Podlaska', 'ul. Bialska 31', '21-542', 'Leśna Podlaska', 'lubelskie', '5370001193', 'OPC', 'umorzono', '2017-10-27 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(431, 1067, 'Stacja Paliw i Agencja Handlu i Usług Stanisław Horyza', 'Ostrów Wielkopolski', 'Krotoszyńska 179', '63-400', 'Ostrów Wielkopolski', 'wielkopolskie', '6221003129', 'OPZ', 'umorzono', '2016-09-30 00:00:00', 'udzielenie koncesji', ''),
-(432, 30580, 'STACJA PALIW I TRANSPORT Sp. z o.o.', 'Nowy Tomyśl', 'POZNAŃSKA 18', '64-300', 'Nowy Tomyśl', 'wielkopolskie', '7882015472', 'OPC', 'umorzono', '2016-09-20 00:00:00', 'udzielenie koncesji', ''),
-(433, 71560, 'STACJA PALIW ZMG Sp. z o.o.', 'Krzywiń', 'os. Brzozowiec 37', '64-010', 'Jerka', 'wielkopolskie', '6981864920', 'OPC', 'umorzono', '2024-01-31 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(434, 30565, 'STAMP Spółka z ograniczoną odpowiedzialnością', 'Przeworsk', 'Ul. Gorliczyńska 5a', '37-200', 'Przeworsk', 'podkarpackie', '7822512362', 'OPC', 'umorzono', '2016-09-20 00:00:00', 'udzielenie koncesji', ''),
-(435, 22757, 'Stanisław Wawrowicz FIRMA HANDLOWO-USŁUGOWA \\STACH\\', 'Nowa Brzeźnica', 'ul. Szkolna 7', '98-331', 'Nowa Brzeźnica', 'łódzkie', '5741041325', 'OPC', 'umorzono', '2017-03-20 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(436, 55748, 'STELAR Spółka z ograniczoną odpowiedzialnością', 'Chełm', 'ul. Okszowska 39', '22-100', 'Chełm', 'lubelskie', '5632434356', 'OPC', 'umorzono', '2018-06-25 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(437, 28186, 'Super Oil Sp. z o.o.', 'Poznań', 'ul. Lechicka 59 A lok. 2', '61-695', 'Poznań', 'wielkopolskie', '9721263071', 'OPC', 'umorzono', '2016-09-19 00:00:00', 'udzielenie koncesji', ''),
-(438, 20978, 'Swatowscy Sp z o. o.', 'Brzeg', 'ul. Saperska 1', '49-300', 'Brzeg', 'opolskie', '8952007315', 'OPC', 'umorzono', '2021-10-06 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(439, 10577, 'Świerczyński Roman Firma \\WACEK\\ Handel-Usługi', 'Przysucha', 'ul. Przemysłowa 14A', '26-400', 'Przysucha', 'mazowieckie', '7990009480', 'OPC', 'umorzono', '2016-09-12 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(440, 10920, 'Tadeusz Pietruszka Stacja Paliw', 'Chodzież', 'Podanin 77', '64-800', 'Chodzież', 'wielkopolskie', '7640101481', 'OPC', 'umorzono', '2016-09-28 00:00:00', 'udzielenie koncesji', ''),
-(441, 30668, 'TADOIL TADEUSZ GNIEWISZ', 'Łaznów', 'Łaznów 148A', '97-221', 'Łaznów', 'łódzkie', '7731049585', 'OPC', 'umorzono', '2016-09-16 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(442, 28166, 'Tawirex Sp. z o.o.', 'Łódź', 'Konstantego Ciołkowskiego 7 / 73', '93-510', 'Łódź', 'łódzkie', '7292710455', 'OPC', 'umorzono', '2016-10-04 00:00:00', 'udzielenie koncesji', ''),
-(443, 28366, 'TM-BIS Sp. z o.o.', 'Rakoniewice', 'Reymonta 1', '62-067', 'Rakoniewice', 'wielkopolskie', '9950236710', 'OPC', 'umorzono', '2016-09-28 00:00:00', 'udzielenie koncesji', ''),
-(444, 70765, 'TOBMAR Marcin Bugdał, Tomasz Bugdał s.c.', 'Gostynin', 'Stefana Żeromskiego 24', '09-500', 'Gostynin', 'mazowieckie', '9710679075', 'OPC', 'umorzono', '2022-12-01 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(445, 15668, 'Tomasz Głogowski GAZ-MEN', 'Bydgoszcz', 'ul. Leona Kruczkowskiego 2/58', '85-126', 'Bydgoszcz', 'kujawsko-pomorskie', '5591468647', 'OPC', 'umorzono', '2016-09-23 00:00:00', 'udzielenie koncesji', ''),
-(446, 70427, 'TOMSOL PALIWA spółka z ograniczoną odpowiedzialnością', 'Koszalin', 'ul. Lubuszan 4', '75-848', 'Koszalin', 'zachodniopomorskie', '6692565737', 'OPC', 'umorzono', '2022-08-29 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(447, 70989, 'TotalEnergies Gas & Power Limited', '', 'High Street 55-57, Redhill', 'RH1 1RX', 'Surrey', '', '', 'OEE', 'umorzono', '2023-07-27 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(448, 70989, 'TotalEnergies Gas & Power Limited', '', 'High Street 55-57, Redhill', 'RH1 1RX', 'Surrey', '', '', 'OPG', 'umorzono', '2023-07-19 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(449, 26356, 'Traden Spółka z ograniczoną odpowiedzialnością', 'Ożarów Mazowiecki', 'ul. Poznańska 86/88', '05-850', 'Jawczyce', 'mazowieckie', '1182112454', 'DEE', 'umorzono', '2021-05-12 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(450, 28185, 'Transoil sp. z o.o.', 'Solina', 'Solina 105', '38-612', 'Solina', 'podkarpackie', '6881300661', 'OPC', 'umorzono', '2016-09-16 00:00:00', 'udzielenie koncesji', ''),
-(451, 26596, 'Trifecta sp. z o.o.', 'Wrocław', 'ul. Nyska 59-61', '50-505', 'Wrocław', 'dolnośląskie', '8992776669', 'OPC', 'umorzono', '2016-10-03 00:00:00', 'udzielenie koncesji', ''),
-(452, 17825, 'Uni-Gaz Andrzej Sierpatowski', 'Bytom', 'ul. Składowa 16', '41-902', 'Bytom', 'śląskie', '6412248847', 'OPC', 'umorzono', '2017-03-28 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(453, 68498, 'UNIQ OIL Sp. z ograniczona odpowiedzialnością Spółka Komandytowa', 'Pułtusk', 'Mickiewicza 45 / 51', '06-100', 'Pułtusk', 'mazowieckie', '5681625694', 'OPC', 'umorzono', '2021-04-21 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(454, 68498, 'UNIQ OIL Sp. z ograniczona odpowiedzialnością Spółka Komandytowa', 'Pułtusk', 'Mickiewicza 45 / 51', '06-100', 'Pułtusk', 'mazowieckie', '5681625694', 'OPC', 'umorzono', '2023-03-03 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(455, 64697, 'URSA POLSKA Spółka z ograniczoną odpowiedzialnością', 'Ząbkowice', 'ul. Armii Krajowej 12', '42-520', 'Dąbrowa Górnicza', 'śląskie', '5341413645', 'OEE', 'umorzono', '2019-08-29 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(456, 64420, 'Usługi Transportowe Jerzy Nosko', 'Krynki', 'ul. gen. Józefa Bema 2 / 2', '16-120', 'Krynki', 'podlaskie', '5451277479', 'OPC', 'umorzono', '2019-04-03 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(457, 28159, 'UTHGRA sp. z o.o.', 'Wrocław', 'Krzycka 63/2', '53-019', 'Wrocław', 'dolnośląskie', '8992787584', 'OPC', 'umorzono', '2016-09-23 00:00:00', 'udzielenie koncesji', ''),
-(458, 24766, 'Uzdrowisko Ustka Sp. z o. o.', 'Ustka', 'ul. Beniowskiego 1', '76-270', 'Ustka', 'pomorskie', '8390206385', 'WEE', 'umorzono', '2018-11-20 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(459, 66119, 'VEOLIA ENERGY SUPPLY POLAND Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Puławska 2', '02-566', 'Warszawa', 'mazowieckie', '5213893579', 'OCC', 'umorzono', '2022-03-21 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(460, 30579, 'Vima Global S.A.', 'Wrocław', 'ul. Kwidzyńska 3', '51-415', 'Wrocław', 'dolnośląskie', '8681963872', 'OPC', 'umorzono', '2016-09-27 00:00:00', 'udzielenie koncesji', ''),
-(461, 23813, 'Vlassenroot Polska sp. z o.o.', 'Gliwice', 'ul. Bojkowska 59', '44-100', 'Gliwice', 'śląskie', '6762329428', 'WEE', 'umorzono', '2018-07-04 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa');
+(243, 24724, 'Małgorzata Myszka', 'Łaziska', 'Piotrawin 114B', '24-335', 'Łaziska', 'lubelskie', '7171032080', 'WEE', 'umorzono', '2018-03-26', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(244, 16690, 'Marcin Plamowski - Przdsiebiorstwo Handlowo-Usługowe \\MAR-GAZ\\', 'Pajęczno', 'Dylów Rządowy 99B', '98-330', 'Pajęczno', 'łódzkie', '7722071823', 'OPC', 'umorzono', '2017-03-20', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(245, 7908, 'Marek Dymny Firma Handlowo-Usługowa \\MARKO\\ Stacja Tankowania Samochodów LPG', 'Daszyna', 'Daszyna 36A', '99-107', 'Daszyna', 'łódzkie', '7751220504', 'OPC', 'umorzono', '2017-10-24', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(246, 6419, 'Marian Janiszek i Wspólnicy Mar-Rom Spółka z ograniczoną odpowiedzialnością', 'Orońsko', 'Dobrut 18B', '26-505', 'Orońsko', 'mazowieckie', '7990000421', 'MPC', 'umorzono', '2023-01-13', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(247, 14599, 'Mariusz Gajo - GAS', 'Kamień Pomorski', 'ul. Jana Długosza 11A', '72-400', 'Kamień Pomorski', 'zachodniopomorskie', '8561545600', 'OPC', 'umorzono', '2017-01-11', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(248, 24431, 'Marselwind sp. z o.o.', 'Katowice', 'ul. Ks.Piotra Ściegiennego 3', '40-114', 'Katowice', 'śląskie', '6342831517', 'WEE', 'umorzono', '2016-11-03', 'udzielenie koncesji', ''),
+(249, 21105, 'Marywilska 44 Sp. z o.o.', 'Warszawa', 'ul. Marywilska 44', '03-042', 'Warszawa', 'mazowieckie', '5242711428', 'OEE', 'umorzono', '2022-02-28', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(250, 28330, 'MAT-POL OIL Sp. z o.o.', 'Poznań', 'Wojska Polskiego 12', '60-637', 'Poznań', 'wielkopolskie', '2530334508', 'OPC', 'umorzono', '2016-09-23', 'udzielenie koncesji', ''),
+(251, 16628, 'MAX-GAZ Bartłomiej Olszowiak', 'Galewice', 'ul. Zmyślona 2', '98-405', 'Galewice', 'łódzkie', '9970022722', 'OPC', 'umorzono', '2016-09-22', 'udzielenie koncesji', ''),
+(252, 30606, 'MAXMAR Sp. z o.o.', 'Błędów', 'Wilhelmów 29', '05-620', 'Błędów', 'mazowieckie', '7972050360', 'OPC', 'umorzono', '2016-10-07', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(253, 2819, 'Megatem EC-Lublin Sp. z o.o.', 'Lublin', 'ul. Mełgiewska 7-9', '20-952', 'Lublin', 'lubelskie', '9462311443', 'OCC', 'umorzono', '2022-12-16', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(254, 597, 'Michelin Polska Spółka z ograniczoną odpowiedzialnością', 'Olsztyn', 'Leonharda 9', '10-454', 'Olsztyn', 'warmińsko-mazurskie', '7390203825', 'WEE', 'umorzono', '2016-12-20', 'udzielenie koncesji', ''),
+(255, 4337, 'Mieczysław Markuszewski PPH MARK-GAZ', 'Płock', 'ul. Banacha 10', '09-400', 'Płock', 'mazowieckie', '7741477207', 'MPC', 'umorzono', '2020-04-27', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(256, 133, 'Miejskie Przedsiębiorstwo Energetyki Cieplnej Sp. z o.o.', 'Chełm', 'ul. Towarowa 9', '22-100', 'Chełm', 'lubelskie', '5630000843', 'OCC', 'umorzono', '2022-11-17', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(257, 30607, 'MIRAS Sp. z o.o.', 'Łódź', 'ul. Zarzewska 17 lok. 15', '93-184', 'Łódź', 'łódzkie', '7292708760', 'OPC', 'umorzono', '2016-10-06', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(258, 20714, 'MJM Spółka z ograniczoną odpowiedzialnością MIGA Spółka Komandytowa', 'Działdowo', 'ul. Księżodworska 6', '13-200', 'Działdowo', 'warmińsko-mazurskie', '5711671458', 'WEE', 'umorzono', '2021-12-27', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(259, 28337, 'MK OIL Sp. z o.o.', 'Pniewy', 'Pniewy 4', '05-652', 'Pniewy', 'mazowieckie', '7972057528', 'OPC', 'umorzono', '2016-09-27', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(260, 13053, 'MK PETROL Sp. z o. o.', 'Warszawa', 'ul. F. Klimczaka 5 lok. 35', '02-797', 'Warszawa', 'mazowieckie', '9512126134', 'OPZ', 'umorzono', '2020-04-09', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(261, 55792, 'MM-Solar Jarosz Kulikowski Spółka z ograniczoną odpowiedzialnością', 'Łomża', 'ul. Gen. Władysława Sikorskiego 321', '18-400', 'Łomża', 'podlaskie', '7182145534', 'WEE', 'umorzono', '2021-12-13', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(262, 28342, 'Moostank Sp. z o.o.', 'Gorlice', 'Ropica Polska 338', '38-300', 'Ropica Polska', 'małopolskie', '6762504972', 'OPC', 'umorzono', '2016-09-16', 'udzielenie koncesji', ''),
+(263, 28247, 'MORENA METAL Sp. z o.o.', 'Warszawa', 'ul. Urocza 39D', '05-075', 'Warszawa', 'mazowieckie', '1251635883', 'OPC', 'umorzono', '2016-09-27', 'udzielenie koncesji', ''),
+(264, 32142, 'MORION TECH spółka z ograniczoną odpowiedzialnością', 'Niepołomice', 'Niepołomice 204', '32-020', 'Zagórze', 'małopolskie', '6832075282', 'OPC', 'umorzono', '2017-08-25', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(265, 28375, 'MOYER Sp. z o.o.', 'Toruń', 'Wielko Rów 40B lok. 23', '87-100', 'Toruń', 'kujawsko-pomorskie', '8792684721', 'OPC', 'umorzono', '2016-09-27', 'udzielenie koncesji', ''),
+(266, 28118, 'MRA Petrol sp. z o.o.', 'Katowice', 'ul. Krasińskiego 29 / 9', '40-019', 'Katowice', 'śląskie', '6591544886', 'OPC', 'umorzono', '2016-09-16', 'udzielenie koncesji', ''),
+(267, 70903, 'MW STAROIL Sp. z o.o.', 'Łódź', 'ul. Łąkowa 7B', '90-562', 'Łódź', 'łódzkie', '7272847748', 'OPC', 'umorzono', '2023-02-27', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(268, 69295, 'Myjnia Samochodowa Auto- Błysk Janusz Tempski', 'Gościcino', 'Równa 4', '84-241', 'Gościcino', 'pomorskie', '5881979089', 'WEE', 'umorzono', '2021-11-24', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(269, 30459, 'NAFCOM Sp. z o.o. sp.k.', 'Piotrków Trybunalski', 'ul. Regatowa 11', '97-300', 'Piotrków Trybunalski', 'łódzkie', '7712883086', 'OPC', 'umorzono', '2016-09-30', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(270, 26149, 'Naft-Trans Sp. z o.o.', 'Nowe Miasteczko', 'ul. Przemysłowa 2', '67-124', 'Nowe Miasteczko', 'lubuskie', '9252099333', 'OPC', 'umorzono', '2016-10-06', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(271, 21449, 'Nano-Solar Sp. z o.o.', 'Olsztynek', 'Sudwa 12 B', '11-015', 'Sudwa', 'warmińsko-mazurskie', '5272620191', 'DPG', 'umorzono', '2019-07-25', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(272, 28173, 'Neo Polska Sp. z o.o.', 'Wolin', 'ul. Świerczewskiego 31', '72-510', 'Wolin', 'zachodniopomorskie', '9860242351', 'OPC', 'umorzono', '2016-09-26', 'udzielenie koncesji', ''),
+(273, 11460, 'Neo Power Sp. z o.o.', 'Warszawa', 'ul. Franciszka Klimczaka 1', '02-797', 'Warszawa', 'mazowieckie', '5262677195', 'DEE', 'umorzono', '2022-03-30', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(274, 28044, 'NEXOIL Sp. z o.o.', 'Pniewy', 'Wspólna 1', '62-045', 'Pniewy', 'wielkopolskie', '9231695461', 'OPC', 'umorzono', '2016-09-30', 'udzielenie koncesji', ''),
+(275, 26286, 'NOR - GAZ Andrzej Gocan', 'Pruszków', 'Al. Wojska Polskiego 40/47', '05-804', 'Pruszków', 'mazowieckie', '5342099464', 'OPC', 'umorzono', '2016-09-23', 'udzielenie koncesji', ''),
+(276, 24114, 'Oaza Bis sp. z o.o. sp. k.', 'Rybarzowice', 'ul. Żywiecka 823', '43-378', 'Rybarzowice', 'śląskie', '9372670701', 'OPC', 'umorzono', '2016-09-08', 'udzielenie koncesji', ''),
+(277, 64983, 'OIL Albera S.L.', 'Girona', 'PG Poligono Industrial La Campa 5', '00-000', 'Girona', '', '5263125486', 'OPG', 'umorzono', '2020-03-25', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(278, 30442, 'OIL ENTERPRISE Sp. z o.o.', 'Kraków', 'ul. Stanisława Kunickiego 5/201', '30-134', 'Kraków', 'małopolskie', '6772403103', 'OPC', 'umorzono', '2016-09-14', 'udzielenie koncesji', ''),
+(279, 23214, 'OIL TRADE Sp. z o.o.', 'Kostrzyn nad Odrą', 'ul. Żeglarska 31/6', '66-470', 'Kostrzyn nad Odrą', 'lubuskie', '5993166078', 'OPC', 'umorzono', '2016-09-27', 'udzielenie koncesji', ''),
+(280, 30567, 'Oildex Energy sp. z o.o.', 'Wrocław', 'ul. Kiełbaśnicza 3/4', '50-106', 'Wrocław', 'dolnośląskie', '8971822507', 'OPC', 'umorzono', '2016-09-22', 'udzielenie koncesji', ''),
+(281, 55, 'Oktan Energy & V/L Service Sp. z o.o.', 'Szczecin', 'Hryniewieckiego 1', '70-606', 'Szczecin', 'zachodniopomorskie', '9552029087', 'WPC', 'umorzono', '2016-09-26', 'udzielenie koncesji', ''),
+(282, 23373, 'OLGAS Anna Krzykwa', 'Olecko', 'ul. Ełcka 2', '19-400', 'Olecko', 'warmińsko-mazurskie', '8471385191', 'OPC', 'umorzono', '2017-03-13', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(283, 28144, 'ON PLUS Sp. z o.o.', 'Lipka', 'Wielki Buczek nr 5', '77-420', 'Lipka', 'wielkopolskie', '7671702141', 'OPC', 'umorzono', '2016-09-27', 'udzielenie koncesji', ''),
+(284, 33305, 'ONICO OIL S.A.', 'Warszawa', 'Al. Jerozolimskie 200 / 346', '02-486', 'Warszawa', 'mazowieckie', '7010508324', 'OPC', 'umorzono', '2017-12-08', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(285, 26947, 'Orema sp. z o.o.', 'Kraków', 'ul. Ks. Bp. Władysława Bandurskiego 66/4', '31-515', 'Kraków', 'małopolskie', '6751531209', 'OPC', 'umorzono', '2016-09-21', 'udzielenie koncesji', ''),
+(286, 28282, 'OREONA LTD', 'Nikozja, Republika Cypryjska', 'Dimofontos 7', '1075', 'Nikozja, Republika Cypryjska', '', '', 'OPC', 'umorzono', '2016-09-12', 'udzielenie koncesji', ''),
+(287, 28282, 'OREONA LTD', 'Nikozja, Republika Cypryjska', 'Dimofontos 7', '1075', 'Nikozja, Republika Cypryjska', '', '', 'OPZ', 'umorzono', '2016-09-12', 'udzielenie koncesji', ''),
+(288, 9876, 'Orlen Oil Spółka z ograniczoną odpowiedzialnością', 'Gdańsk', 'ul. Elbląska 135', '80-718', 'Gdańsk', 'pomorskie', '6751190702', 'WPC', 'umorzono', '2017-08-03', 'udzielenie koncesji (*)', 'art. 105 § 1 kpa'),
+(289, 24417, 'OZOIL Sp. z o.o.', 'Szczecin', 'ul. Bohaterów Warszawy 47', '70-342', 'Szczecin', 'zachodniopomorskie', '8522607946', 'OPC', 'umorzono', '2016-09-27', 'udzielenie koncesji', ''),
+(290, 33378, 'P.H.U. M&J Auto Marcin Żórański', 'Kamienica Polska', 'ul. Topolowa 25', '42-260', 'Wanaty', 'śląskie', '9490993118', 'OPC', 'umorzono', '2017-06-14', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(291, 17136, 'P.W. MAX - GAZ Janusz Abucki', 'Głogów', 'ul. Magazynowa 7', '67-200', 'Głogów', 'dolnośląskie', '6931138287', 'OPC', 'umorzono', '2016-09-28', 'udzielenie koncesji', ''),
+(292, 70119, 'Paged Energy Spółka Akcyjna', 'Warszawa', 'Emilii Plater 53', '00-113', 'Warszawa', 'mazowieckie', '5252880983', 'DEE', 'umorzono', '2023-10-12', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(293, 28354, 'PALMAX Sp. z o.o.', 'Rypin', 'Bielawki 16', '87-500', 'Rypin', 'kujawsko-pomorskie', '8921482334', 'OPC', 'umorzono', '2016-09-23', 'udzielenie koncesji', ''),
+(294, 28091, 'Paltrade Sp. z o.o.', 'Zduńska Wola', 'Wojsławice 118', '98-200', 'Zduńska Wola', 'łódzkie', '8291738920', 'OPC', 'umorzono', '2016-10-04', 'udzielenie koncesji', ''),
+(295, 13177, 'Paul Klacska Polska Sp. z o.o.', 'Piaseczno', 'ul. Świętojańska 5', '05-500', 'Piaseczno', 'mazowieckie', '1230456968', 'PPC', 'umorzono', '2017-07-25', 'udzielenie koncesji (*)', 'art. 105 § 1 kpa'),
+(296, 28361, 'Paweł Szmagaj \\MENOS\\', 'Grodzisk Mazowiecki', 'ul. T. Bairda 46/5', '05-825', 'Grodzisk Mazowiecki', 'mazowieckie', '5342276707', 'OPC', 'umorzono', '2016-09-27', 'udzielenie koncesji', ''),
+(297, 32161, 'PCC Consumer Products Czechowice SA', 'Czechowice-Dziedzice', 'ul. Łukasiewicza 5', '43-502', 'Czechowice-Dziedzice', 'śląskie', '6520004705', 'OPC', 'umorzono', '2017-06-05', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(298, 64215, 'PCWO Energy Projekt Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Emilii Plater 53', '00-118', 'Warszawa', 'mazowieckie', '5252680592', 'WEE', 'umorzono', '2021-11-22', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(299, 64215, 'PCWO Energy Projekt Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Emilii Plater 53', '00-118', 'Warszawa', 'mazowieckie', '5252680592', 'WEE', 'umorzono', '2021-11-22', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(300, 60961, 'PCWO Energy PV 2 sp. z o.o.', 'Kielce', 'ul. św. Leonarda 9', '25-311', 'Kielce', 'świętokrzyskie', '6572937567', 'WEE', 'umorzono', '2021-11-02', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(301, 69859, 'PCWO Energy PV 3 sp. z o.o.', 'Kielce', 'ul. św. Leonarda 9', '25-311', 'Kielce', 'świętokrzyskie', '6572937573', 'WEE', 'umorzono', '2021-11-02', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(302, 69881, 'PCWO Energy PV 30 sp. z o.o.', 'Kielce', 'ul. św. Leonarda 9', '25-311', 'Kielce', 'świętokrzyskie', '6572937751', 'WEE', 'umorzono', '2021-11-02', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(303, 49545, 'PCWO Energy PV 33 sp. z o.o.', 'Kielce', 'ul. św. Leonarda 7', '25-311', 'Kielce', 'świętokrzyskie', '6572934617', 'WEE', 'umorzono', '2021-11-02', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(304, 49547, 'PCWO Energy PV 34 sp. z o.o.', 'Kielce', 'ul. Sienkiewicza 46', '25-507', 'Kielce', 'świętokrzyskie', '9592000380', 'WEE', 'umorzono', '2021-11-02', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(305, 59946, 'PCWO Energy PV 35 sp. z o.o.', 'Kielce', 'ul. św. Leonarda 9', '25-311', 'Kielce', 'świętokrzyskie', '6631868863', 'WEE', 'umorzono', '2021-11-02', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(306, 59947, 'PCWO Energy PV 36 sp. z o.o.', 'Kielce', 'ul. św. Leonarda 9', '25-311', 'Kielce', 'świętokrzyskie', '6572910746', 'WEE', 'umorzono', '2021-11-02', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(307, 49546, 'PCWO Energy PV 37 sp. z o.o.', 'Kielce', 'ul. św. Leonarda 9', '25-311', 'Kielce', 'świętokrzyskie', '6572934698', 'WEE', 'umorzono', '2021-11-02', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(308, 49548, 'PCWO Energy PV 46 sp. z o.o.', 'Kielce', 'ul. św. Leonarda 7', '25-311', 'Kielce', 'świętokrzyskie', '6572934646', 'WEE', 'umorzono', '2021-11-02', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(309, 49548, 'PCWO Energy PV 46 sp. z o.o.', 'Kielce', 'ul. św. Leonarda 7', '25-311', 'Kielce', 'świętokrzyskie', '6572934646', 'WEE', 'umorzono', '2021-11-02', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(310, 19718, 'PEGAS GRUPA Sp. z o.o.', 'Promna', 'ul. Górna 1', '26-803', 'Promna', 'mazowieckie', '7981465273', 'OPZ', 'umorzono', '2021-02-17', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(311, 71059, 'PELOTON TRADING COMPANY Sp. z o.o.', 'Warszawa', 'Stawki 2A / 1', '00-193', 'Warszawa', 'mazowieckie', '9522200524', 'OPC', 'umorzono', '2023-06-28', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(312, 30659, 'PELTO Sp. z o.o.', 'Radomsko', 'ul. Sucharskiego 49', '97-500', 'Radomsko', 'łódzkie', '7722408493', 'OPC', 'umorzono', '2016-09-19', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(313, 69867, 'PERITUS OIL GROUP Spółka z ograniczoną odpowiedzialnością', 'Babice', 'ul. Wieczysta 50', '32-555', 'Zagórze', 'małopolskie', '6282267727', 'OPC', 'umorzono', '2022-10-04', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(314, 30582, 'PERŁA OIL Sp. z o.o.', 'Piotrków Trybunalski', 'ul. Łódzka 20 A, B', '97-300', 'Piotrków Trybunalski', 'łódzkie', '7712885783', 'OPC', 'umorzono', '2016-09-26', 'udzielenie koncesji', ''),
+(315, 4020, 'PERN Spółka akcyjna', 'Płock', 'ul. Wyszogrodzka 133', '09-400', 'Płock', 'mazowieckie', '7740003097', 'MPC', 'umorzono', '2016-09-12', 'udzielenie koncesji', ''),
+(316, 4020, 'PERN Spółka akcyjna', 'Płock', 'ul. Wyszogrodzka 133', '09-400', 'Płock', 'mazowieckie', '7740003097', 'OPZ', 'umorzono', '2022-09-26', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(317, 23887, 'PETRO MAX S.A. S.K.A.', 'Poznań', 'ul. Wodna 11/3', '61-782', 'Poznań', 'wielkopolskie', '9241902967', 'OGZ', 'umorzono', '2023-07-28', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(318, 23887, 'PETRO MAX S.A. S.K.A.', 'Poznań', 'ul. Wodna 11/3', '61-782', 'Poznań', 'wielkopolskie', '9241902967', 'OPG', 'umorzono', '2023-07-28', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(319, 28221, 'Petro Oil sp. z o.o.', 'Bolesław', 'ul. Wyzwolenia 1H', '32-329', 'Bolesław', 'małopolskie', '6751540160', 'OPC', 'umorzono', '2016-09-21', 'udzielenie koncesji', ''),
+(320, 32171, 'PETROKAN OIL Spółka z ograniczoną odpowiedzialnością', 'Włocławek', 'ul. Al. Chopina 2/4', '87-800', 'Włocławek', 'kujawsko-pomorskie', '8883125884', 'OPC', 'umorzono', '2017-11-06', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(321, 28343, 'PETROLEUM INVEST Sp. z o.o.', 'Poznań', 'ul. Lechicka 59a lok 1', '61-695', 'Poznań', '', '9721263384', 'OPC', 'umorzono', '2016-09-28', 'udzielenie koncesji', ''),
+(322, 30583, 'PETROLOMO Sp. z o.o.', 'Łódź', 'ul. Rewolucji 1905 r. nr 82', '90-223', 'Łódź', 'łódzkie', '7252088771', 'OPC', 'umorzono', '2016-10-10', 'udzielenie koncesji', ''),
+(323, 69244, 'PETROLUKI SPÓŁKA Z OGRANICZONA ODPOWIEDZIALNOSCIA', 'Kalisz', 'ul. Obozowa 4', '62-800', 'Kalisz', 'wielkopolskie', '6182148242', 'OPC', 'umorzono', '2021-06-24', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(324, 28364, 'Petrolus sp. z o.o.', 'Wrocław', 'ul. Bierutowska 15/8', '51-317', 'Wrocław', 'dolnośląskie', '8952077623', 'OPC', 'umorzono', '2016-10-04', 'udzielenie koncesji', ''),
+(325, 23237, 'PetroPower Sp. z o.o.', 'Przasnysz', 'Sierakowo 55', '06-300', 'Przasnysz', 'mazowieckie', '7611556026', 'OPZ', 'umorzono', '2016-09-12', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(326, 28336, 'PETROSALE Sp. z o.o.', 'Warszawa', 'ul. Biała 4 lok. 81', '00-895', 'Warszawa', 'mazowieckie', '5272767089', 'OPC', 'umorzono', '2016-09-26', 'udzielenie koncesji', ''),
+(327, 30624, 'Petrotruck Sp. z o.o.', 'Warszawa', 'ul. Marii Kazimiery 48A', '01-641', 'Warszawa', 'mazowieckie', '5252671096', 'OPC', 'umorzono', '2016-10-06', 'udzielenie koncesji', ''),
+(328, 28120, 'PETROX PLUS Sp. z o.o.', 'Bydgoszcz', 'ul. Zygmunta Augusta 14 lok. 9', '85-082', 'Bydgoszcz', 'kujawsko-pomorskie', '9671369665', 'OPC', 'umorzono', '2016-09-27', 'udzielenie koncesji', ''),
+(329, 24281, 'PGJ ENERGIA Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Husarii 41', '02-951', 'Warszawa', 'mazowieckie', '1132870626', 'OEE', 'umorzono', '2018-06-11', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(330, 20775, 'PGNIG Supply & Trading GmbH', 'Monachium', 'Arnulfstraße 19', '80335', 'Monachium', '', 'DE275882757', 'OGZ', 'umorzono', '2017-01-30', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(331, 70400, 'PGNIG SUPPLY&TRADING POLSKA Sp. z o.o.', 'Warszawa', 'ul. M. Kasprzaka 25', '01-224', 'Warszawa', 'mazowieckie', '5272995695', 'OPG', 'umorzono', '2022-10-21', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(332, 8069, 'PGNiG Termika Energetyka Rozproszona Spółka z ograniczoną odpowiedzialnością', 'Wrocław', 'Plac Solidarności 1/3/5', '53-661', 'Wrocław', 'dolnośląskie', '6151814382', 'DPG', 'umorzono', '2021-12-22', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(333, 64659, 'PH Starmex Sp. z o.o.', 'Grodzis Mazowiecki', 'Żyrardowska 3E', '05-825', 'Grodzis mazowiecki', 'mazowieckie', '5291824776', 'OPC', 'umorzono', '2019-05-21', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(334, 24828, 'PHU A&S Joanna Lachowicz, Sławomir Błazewicz Spółka Cywilna', 'Jagłowice', 'Jagłowice 28', '68-2012', 'Jagłowice', 'lubuskie', '9282080864', 'OPC', 'umorzono', '2016-09-27', 'udzielenie koncesji', ''),
+(335, 28349, 'PHU Bielcem Radosław Kołodziej', 'Bielsko-Biała', 'ul. Londzina 29', '43-300', 'Bielsko-Biała', 'śląskie', '5471949255', 'OPC', 'umorzono', '2016-09-05', 'udzielenie koncesji', ''),
+(336, 30544, 'PHU Paweł Sierocki', 'Kutno', 'Malina 82', '99-300', 'Malina', 'łódzkie', '7751498369', 'OPC', 'umorzono', '2016-09-12', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(337, 17179, 'PHU ZAP Zdzisław Pokład', 'Bogatynia', 'ul. Białogórska 30', '59-920', 'Bogatynia', 'dolnośląskie', '6150029037', 'OPC', 'umorzono', '2019-10-25', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(338, 59933, 'Piotr Głowacki \\TELESFOR\\ Transport Osobowo-Towarowy', 'Łapanów', 'Kobylec 91', '32-740', 'Łapanów', 'małopolskie', '8681010215', 'OPC', 'umorzono', '2022-04-13', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(339, 15206, 'Piotr Kalkowski Firma Handlowo-Usługowa CLIMATRONIX', 'Kwidzyn', 'Obory 21A', '82-500', 'Kwidzyn', 'pomorskie', '5811775795', 'OPC', 'umorzono', '2018-11-27', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(340, 18113, 'Piotr Kozak Przedsiębiorstwo Handlowo-Usługowe BUD-POL', 'Sędziszów Małopolski', 'ul. Grobla 19', '39-120', 'Sędziszów Małopolski', 'podkarpackie', '8181000538', 'OPC', 'umorzono', '2016-09-14', 'udzielenie koncesji', ''),
+(341, 4081, 'PKS w Bielsku-Białej S.A.', 'Czechowice-Dziedzice', 'ul. Traugutta 11', '43-502', 'Czechowice-Dziedzice', 'śląskie', '5470049147', 'OPC', 'umorzono', '2017-09-11', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(342, 9424, 'Polmax Spółka akcyjna Spółka komandytowo-akcyjna', 'Świebodzin', 'ul. Poznańska 58', '66-200', 'Świebodzin', 'lubuskie', '9270101000', 'OGZ', 'umorzono', '2023-10-02', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(343, 9424, 'Polmax Spółka akcyjna Spółka komandytowo-akcyjna', 'Świebodzin', 'ul. Poznańska 58', '66-200', 'Świebodzin', 'lubuskie', '9270101000', 'OPZ', 'umorzono', '2021-07-07', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(344, 43230, 'POLSKIE FABRYKI PORCELANY \\ĆMIELÓW\\ I \\CHODZIEŻ\\ SPÓŁKA AKCYJNA', 'Ćmielów', 'ul. Ostrowiecka 45', '27-440', 'Ćmielów', 'świętokrzyskie', '7640001526', 'OEE', 'umorzono', '2019-01-07', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(345, 26291, 'Power Contakt Company Sp. zo.o.', 'Warszawa', 'ul. Przydrożna 27A', '03-253', 'Warszawa', 'mazowieckie', '5242782368', 'OPC', 'umorzono', '2016-09-27', 'udzielenie koncesji', ''),
+(346, 65135, 'Powermodul Spółka z ograniczoną odpowiedzialnością', 'Suwałki', 'ul. Reja 54b', '16-400', 'Suwałki', 'podlaskie', '8442357507', 'WEE', 'umorzono', '2021-11-08', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(347, 26274, 'PPHU Naftotrade sp. z o.o.', 'Dąbrowa Górnicza', 'ul. Konopnickiej 57D', '41-300', 'Dąbrowa Górnicza', 'śląskie', '6292472179', 'OPC', 'umorzono', '2016-09-08', 'udzielenie koncesji', ''),
+(348, 23046, 'PPUH AUTOPART Jacek Bąk Sp. z o.o.', 'Mielec', 'ul.Kwiatkowskiego 2a', '39-300', 'Mielec', 'podkarpackie', '8172017315', 'OEE', 'umorzono', '2020-04-21', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(349, 65617, 'PRODUCENT DRZWI \\BARAŃSKI\\ SP. J. IGNACY BARAŃSKI I ZBIGNIEW BARAŃSKI', 'Susz', 'Babięty Wielkie 54', '14-240', 'Susz', 'warmińsko-mazurskie', '5811515048', 'WEE', 'umorzono', '2021-12-15', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(350, 19013, 'Promet-Plast Spółka Cywilna Elżbieta Jeżewska, Andrzej Jeżewski', 'Oława', 'Gaj Oławski 21A', '55-200', 'Oława', 'dolnośląskie', '9120001797', 'WEE', 'umorzono', '2020-02-06', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(351, 28341, 'PROMOBIL FLEET Sp. z o.o.', 'Poznan', 'Karola Libelta 29 / 8', '61-707', 'Poznań', 'wielkopolskie', '7822459797', 'OPC', 'umorzono', '2016-09-22', 'udzielenie koncesji', ''),
+(352, 64358, 'ProTec Ingredia Polska Sp. z o.o.', 'Warszawa', 'ul. Berezyńska 6A / 1', '03-904', 'Warszawa', 'mazowieckie', '1132831922', 'OPC', 'umorzono', '2020-07-02', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(353, 28323, 'Proxima-Petrol sp. z o.o.', 'Skoczów', 'ul. Cieszyńska 25', '43-430', 'Skoczów', 'śląskie', '5482675100', 'OPC', 'umorzono', '2016-09-07', 'udzielenie koncesji', ''),
+(354, 13746, 'PRZEDSIEBIORSTWO HANDLOWO USŁUGOWE \\ ROMEX\\ Roman Zagórski', 'Szydłowiec', 'ul. Browarska 11', '26-500', 'Szydłowiec', 'mazowieckie', '7990009184', 'OPC', 'umorzono', '2016-09-16', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(355, 14225, 'Przedsiebiorstwo Handlowo Usługowe ŻAR, Arkadiusz Saczewski', 'Siedlce', 'ul. Sokołowska 159A', '08-110', 'Siedlce', 'mazowieckie', '8212263843', 'MPC', 'umorzono', '2017-05-22', 'udzielenie koncesji (*)', 'art. 105 § 1 kpa'),
+(356, 434, 'Przedsiębiorstwo Energetyki Cieplnej w Mławie Sp. z o.o', 'Mława', 'ul. Powstańców Styczniowych 3', '06-500', 'Mława', 'mazowieckie', '5690002805', 'OCC', 'umorzono', '2017-03-14', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(357, 32079, 'Przedsiębiorstwo Handlowo Usługowe \\Polteam\\ Krzysztof Gałuszka', 'Knurów', 'ul. Szpitalna 8', '44-190', 'Knurów', 'śląskie', '9690040512', 'OPC', 'umorzono', '2017-08-21', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(358, 32079, 'Przedsiębiorstwo Handlowo Usługowe \\Polteam\\ Krzysztof Gałuszka', 'Knurów', 'ul. Szpitalna 8', '44-190', 'Knurów', 'śląskie', '9690040512', 'OPZ', 'umorzono', '2017-08-21', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(359, 30635, 'Przedsiębiorstwo Handlowo-Usługowe \\KASPOL-BIS\\ Jadwiga Skorupa', 'Kowala- Stępocina', 'Trablice 73A', '26-624', 'Kowala- Stępocina', 'mazowieckie', '7961841655', 'OPC', 'umorzono', '2016-09-20', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(360, 26534, 'Przedsiębiorstwo Handlowo-Usługowe GAZTEL Damian Głębocki', 'Łomża', 'ul. Szmaragdowa 5 / 12', '18-400', 'Łomża', 'podlaskie', '7182130774', 'OPC', 'umorzono', '2016-09-23', 'udzielenie koncesji', ''),
+(361, 358, 'PRZEDSIĘBIORSTWO KOMUNALNE GMINY KONSTANTYNÓW ŁÓDZKI Sp. z o.o.', 'Konstantynów Łódzki', 'ul. Jana Pawła II 44', '95-050', 'Konstantynów Łódzki', 'łódzkie', '7270126080', 'WCC', 'umorzono', '2018-10-31', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(362, 24634, 'Przedsiębiorstwo Produkcji Różnej Handlu i Usług Progres Sp. z o.o.', 'Warszawa', 'ul. Grzybowska 3 / U8', '00-132', 'Warszawa', 'mazowieckie', '5840203742', 'OGZ', 'umorzono', '2016-12-22', 'udzielenie koncesji', 'art. 22 ustawy z 22.07.2016 r. (Dz. U. 2016 p. 1165)'),
+(363, 8269, 'Przedsiębiorstwo Produkcyjno-Handlowe \\WOTEX\\ Wojciech Gąska', 'Kraśnik', 'ul. Przemysłowa 24', '23-200', 'Kraśnik', 'lubelskie', '7150400696', 'OPC', 'umorzono', '2016-09-23', 'udzielenie koncesji', ''),
+(364, 8262, 'Przedsiębiorstwo Produkcyjno-Handlowo-Usługowe Jolanta Ewa Rucińska', 'Kłodawa', 'ul. Bierzwieńska 20', '62-650', 'Kłodawa', 'wielkopolskie', '6661122039', 'OPC', 'umorzono', '2016-09-19', 'udzielenie koncesji', ''),
+(365, 20909, 'Przedsiębiorstwo Rolno-Spożywcze Lech Rutkowski', 'Chełmno', 'Kałdus 16', '86-200', 'Chełmno', 'kujawsko-pomorskie', '8750001373', 'WPC', 'umorzono', '2016-09-13', 'udzielenie koncesji', ''),
+(366, 14828, 'Przedsiębiorstwo Transportowo - Handlowe \\Auto-Benz\\ Sp. z o.o.', 'Gorzów Wielkopolski', 'ul. Niemcewicza 31', '66-400', 'Gorzów Wielkopolski', 'lubuskie', '5993144065', 'OPC', 'umorzono', '2020-08-12', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(367, 12670, 'Przedsiębiorstwo Transportowo Handlowo Usługowe \\Mako-Trans\\ sp. z o.o.', 'Zabrze', 'ul. Makoszowska 16A', '41-800', 'Zabrze', 'śląskie', '6480016724', 'OPC', 'umorzono', '2018-10-08', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(368, 22927, 'Przedsiębiorstwo Usługowo - Handlowe Lena Meyer', 'Borne Sulinowo', 'ul. Wojska Polskiego 5', '78 - 449', 'Borne Sulinowo', 'zachodniopomorskie', '6730003729', 'OPC', 'umorzono', '2016-09-27', 'udzielenie koncesji', ''),
+(369, 1835, 'PRZEDSIĘBIORSTWO USŁUGOWO HANDLOWE MARPOL PAWEŁ KOTOWICZ', 'Łowicz', 'ul. Płocka 1', '99-400', 'Łowicz', 'łódzkie', '8341519919', 'OPC', 'umorzono', '2022-06-23', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(370, 16147, 'Przedsiębiorstwo Usługowo-Handlowe ART-MAG Małgorzata Suszek', 'Końskowola', 'Nowy Pożóg 36A', '24-130', 'Końskowola', 'lubelskie', '7141202502', 'OPC', 'umorzono', '2016-09-15', 'udzielenie koncesji', ''),
+(371, 10154, 'Przedsiębiorstwo Wielobranżowe \\BISS\\ Grażyna Zachoszcz, Mirosław Zachoszcz Sp.j.', 'Połczyn Zdrój', 'ul. Młynarska 11', '78-320', 'Połczyn Zdrój', 'zachodniopomorskie', '6721394618', 'OPC', 'umorzono', '2016-09-28', 'udzielenie koncesji', ''),
+(372, 16681, 'Przedsiębiorstwo Wielobranżowe \\HENPOL\\ Henryk Pędziwiatr', 'Kiełczygłów', 'Osina Duża 13', '98-358', 'Osina Duża', 'łódzkie', '8321719325', 'OPC', 'umorzono', '2016-09-16', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(373, 28416, 'PRZEDSIĘBIORSTWO WIELOBRANŻOWE LOT-TANK KAROL JANKOWSKI', 'Piła', 'ul. Szybowników 9', '64-920', 'Piła', 'wielkopolskie', '7642593531', 'OPC', 'umorzono', '2016-09-21', 'udzielenie koncesji', ''),
+(374, 26253, 'PRZEDSIĘBIORSTWO WIELOBRANŻOWE PALTEX Sp. z o.o', 'Wałbrzych', 'ul. Daszyńskiego 11', '58-304', 'Wałbrzych', 'dolnośląskie', '8862984079', 'OPC', 'umorzono', '2016-10-04', 'udzielenie koncesji', ''),
+(375, 64996, 'Przedsiębiorstwo Wielobranżowe Rafał Ekert', 'Kazuń Bielany', 'Kampinowska 37', '05-152', 'Kazuń Bielany', 'mazowieckie', '5311510272', 'OPC', 'umorzono', '2020-02-24', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(376, 30608, 'Przemysław Królak', 'Cielądz', 'Cielądz 108', '96-214', 'Cielądz', 'łódzkie', '8351426332', 'OPC', 'umorzono', '2016-09-26', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(377, 1309, 'Pucka Gospodarka Komunalna Sp. z o.o.', 'Puck', 'Zamkowa 6', '84-100', 'Puck', 'pomorskie', '5870200062', 'WCC', 'umorzono', '2018-11-09', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(378, 55797, 'PV Sol 2 Spółka z ograniczoną odpowiedzialnością', 'Kraków', 'ul. Warszawska 1 / 5', '31-155', 'Kraków', 'małopolskie', '6762519086', 'WEE', 'umorzono', '2021-11-29', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(379, 49579, 'PV Sol 3 Spółka z ograniczoną odpowiedzialnością', 'Kraków', 'ul. Warszawska 1 / 5', '31-155', 'Kraków', 'małopolskie', '6762516685', 'WEE', 'umorzono', '2021-11-29', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(380, 64737, 'PV Sol 4 Spółka z ograniczoną odpowiedzialnością', 'Kraków', 'ul. Warszawska 1 / 5', '31-155', 'Kraków', 'małopolskie', '6762546841', 'WEE', 'umorzono', '2021-11-29', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(381, 68650, 'PV Wolsztyn Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Puławska 2', '02-566', 'Warszawa', 'mazowieckie', '7811997278', 'WEE', 'umorzono', '2023-03-31', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(382, 65159, 'PVE 15 Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Tytusa Chałubińskiego 8', '00-613', 'Warszawa', 'mazowieckie', '9671395326', 'WEE', 'umorzono', '2021-11-26', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(383, 64301, 'PVE 17 Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Taneczna 18', '02-829', 'Warszawa', 'mazowieckie', '9671404479', 'WEE', 'umorzono', '2021-11-25', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(384, 69434, 'PVE 171 Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Ludwika Wryńskiego 3A/III P', '00-645', 'Warszawa', 'mazowieckie', '9671437616', 'WEE', 'umorzono', '2024-01-16', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(385, 64905, 'PVE 2 Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Taneczna 18', '02-829', 'Warszawa', 'mazowieckie', '9671392606', 'WEE', 'umorzono', '2021-11-22', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(386, 65208, 'PVE 29 Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Taneczna 18', '02-829', 'Warszawa', 'mazowieckie', '9671427664', 'WEE', 'umorzono', '2021-11-25', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(387, 65156, 'PVE 33 Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'Taneczna 18', '02-829', 'Warszawa', 'mazowieckie', '9671428184', 'WEE', 'umorzono', '2021-11-24', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(388, 68697, 'PVE 41 Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Ludwika Waryńskiego 3A/III P', '00-645', 'Warszawa', 'mazowieckie', '9671429901', 'WEE', 'umorzono', '2024-01-16', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(389, 65271, 'PVE 46 Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Taneczna 18', '02-829', 'Warszawa', 'mazowieckie', '9671430264', 'WEE', 'umorzono', '2021-11-23', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(390, 64919, 'PVSE 1 Sp. z o.o.', 'Warszawa', 'ul. Taneczna 18', '02-829', 'Warszawa', 'mazowieckie', '5252774672', 'WEE', 'umorzono', '2021-11-25', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(391, 65138, 'PVSE 2 Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Taneczna 18', '02-829', 'Warszawa', 'mazowieckie', '5252774413', 'WEE', 'umorzono', '2021-11-24', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(392, 65283, 'QPV KP2 sp. z o.o.', 'Wrocław', 'ul. Wagonowa 2c', '53-609', 'Wrocław', 'dolnośląskie', '9452173241', 'WEE', 'umorzono', '2021-11-08', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(393, 24569, 'QSUN 25 Sp. z o.o.', 'Wrocław', 'ul. Leszczyńskiego 4 / 29', '50-078', 'Wrocław', 'dolnośląskie', '9151792682', 'WEE', 'umorzono', '2021-11-08', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(394, 43024, 'QWP Stawiszyn sp. z o.o.', 'Wrocław', 'ul. Wagonowa 2C', '53-609', 'Wrocław', 'dolnośląskie', '8513167057', 'WEE', 'umorzono', '2023-08-28', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(395, 41939, 'QWP Widuchowa sp. z o.o.', 'Wrocław', 'ul. Wagonowa 2c', '53-609', 'Wrocław', 'dolnośląskie', '8513144932', 'WEE', 'umorzono', '2023-08-28', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(396, 64145, 'QWP Wisznice sp. z o.o.', 'Wrocław', 'ul. Wagonowa 2c', '53-609', 'Wrocław', 'dolnośląskie', '5372508766', 'WEE', 'umorzono', '2022-06-01', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(397, 11076, 'Rafał Sieńko \\LUSKAR-1\\ Transport i Handel', 'Kraków', 'ul. Płk. Dąbka 4', '30-832', 'Kraków', 'małopolskie', '6782677842', 'OPC', 'umorzono', '2016-09-19', 'udzielenie koncesji', ''),
+(398, 28187, 'RAFINOPOL Sp. z o.o.', 'Poznań', 'ul. Lechicka 59 A lok. 106', '61-695', 'Poznań', 'wielkopolskie', '9721263355', 'OPC', 'umorzono', '2016-09-20', 'udzielenie koncesji', ''),
+(399, 30479, 'RASPET Sp. z o.o.', 'Poznań', 'ul. Święty Marcin 29 lok 8', '61-806', 'Poznań', 'wielkopolskie', '7831744273', 'OPC', 'umorzono', '2016-09-30', 'udzielenie koncesji', ''),
+(400, 28025, 'Rawski Sp. z o.o.', 'Józefów', 'ul. Graniczna 21B', '05-410', 'Józefów', 'mazowieckie', '5322056233', 'MPC', 'umorzono', '2022-12-22', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(401, 28116, 'REN-TRADE Sp. z o.o.', 'Bydgoszcz', 'ul. Magazynowa 11 lok. 20', '85-790', 'Bydgoszcz', 'kujawsko-pomorskie', '5542934977', 'OPC', 'umorzono', '2016-09-27', 'udzielenie koncesji', ''),
+(402, 29442, 'REPAL Sp. z o.o.', 'Stupsk', 'ul. Mickiewicza 81', '06-561', 'Stupsk', 'mazowieckie', '5691878379', 'OPC', 'umorzono', '2016-09-23', 'udzielenie koncesji', ''),
+(403, 18702, 'Respect Energy Wind Wicko Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Ludwika Rydygiera 8', '01-793', 'Warszawa', 'mazowieckie', '7491911328', 'DEE', 'umorzono', '2023-09-01', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(404, 30528, 'RTK ENERGIA Sp. z o.o.', 'Grodzisk Mazowiecki', 'ul. 3 Maja 28HB', '05-827', 'Grodzisk Mazowiecki', 'mazowieckie', '5291812431', 'OPC', 'umorzono', '2016-09-23', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(405, 64283, 'RTM Spółka z ograniczoną odpowiedzialnością', 'Kwilcz', 'Prusim 5', '64-420', 'Prusim', 'wielkopolskie', '5951450691', 'WEE', 'umorzono', '2021-11-10', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(406, 18141, 'Sabina Kucypera Przedsiębiorstwo Handlowo-Usługowe \\POL-SAB\\', 'Charsznica', 'ul. Miechowska 19a', '32-250', 'Miechów-Charsznica', 'małopolskie', '6821194600', 'OPC', 'umorzono', '2016-09-15', 'udzielenie koncesji', ''),
+(407, 30623, 'SAM-ART Artur Rogoziński', 'Łęczyca', 'Borki 76A', '99-100', 'Łęczyca', 'łódzkie', '8281303209', 'OPC', 'umorzono', '2016-09-27', 'udzielenie koncesji', ''),
+(408, 30483, 'Sankowski Roman \\P.H.U. ROMEX\\', 'Belsk Duży', 'Wola Starowiejska 20', '05-622', 'Belsk Duży', 'mazowieckie', '7970004597', 'OPC', 'umorzono', '2016-09-12', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(409, 28316, 'Sara Markowska', 'Gorzów Wielkopolski', 'ul. Poznańska 121', '66-400', 'Gorzów Wielkopolski', 'lubuskie', '5993184314', 'OPC', 'umorzono', '2016-09-23', 'udzielenie koncesji', ''),
+(410, 394, 'SEC Dębno Sp. z o.o.', 'Dębno', 'Waryńskiego 48A', '74-400', 'Dębno', 'zachodniopomorskie', '5970002775', 'PCC', 'umorzono', '2018-11-19', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(411, 28373, 'SELECT COMPANY Sp. z o o.', 'Poznań', 'ul. Lechicka 9A lok. 5', '61-695', 'Poznań', 'wielkopolskie', '9721264366', 'OPC', 'umorzono', '2016-09-20', 'udzielenie koncesji', ''),
+(412, 21330, 'SICH POLSKA Ewa Chorążewicz', 'Miedzyrzecz', 'Skoki 12', '66-300', 'Międzyrzecz', 'lubuskie', '5961534544', 'WEE', 'umorzono', '2019-01-10', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(413, 26668, 'Signa Invest sp. z o.o.', 'Wrocław', 'ul. Tadeusza Kościuszki 135/215', '50-440', 'Wrocław', 'dolnośląskie', '8992776095', 'OPC', 'umorzono', '2016-09-29', 'udzielenie koncesji', ''),
+(414, 21021, 'Silkom sp. z o.o.', 'Katowice', 'ul. Porcelanowa 19', '40-085', 'Katowice', 'śląskie', '6342798429', 'OPZ', 'umorzono', '2016-09-23', 'udzielenie koncesji', ''),
+(415, 70595, 'Sklep Spożywczo-­Przemysłowy Józef Michoński', 'Aleksandrów', 'Aleksandrów 93', '23-408', 'Aleksandrów', 'lubelskie', '9180002205', 'OPC', 'umorzono', '2022-09-27', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(416, 30629, 'Sklep Spożywczo-Przemysłowy Niwa Marian', 'Dolice', 'ul. Wojska Polskiego 15A', '73-115', 'Dolice', 'zachodniopomorskie', '8531113681', 'OPC', 'umorzono', '2016-09-21', 'udzielenie koncesji', ''),
+(417, 70777, 'Sklep Spożywczo-Przemysłowy s.c. Edyta Jasna, Euzebiusz Jasny', 'Jelenia Góra', 'Wojanów 35', '58-508', 'Jelenia Góra', 'dolnośląskie', '6111120839', 'OPC', 'umorzono', '2023-03-02', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(418, 9105, 'Slovnaft Polska S.A.', 'Kraków', 'ul. Wadowicka 6', '30-415', 'Kraków', 'małopolskie', '6761816480', 'WPC', 'umorzono', '2017-04-04', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(419, 23068, 'Sławomir Podgórski FENIKS', 'Głusk', 'Ćmiłów, ul. Jaśminowa 20', '22-388', 'Głusk', 'lubelskie', '9462352525', 'OPC', 'umorzono', '2016-09-23', 'udzielenie koncesji', ''),
+(420, 69917, 'Solar Park Zamość Piotr Struk Bożena Struk Spółka Cywilna', 'Zamość', 'Płoskie 1', '22-400', 'Płoskie', 'lubelskie', '9223048439', 'WEE', 'umorzono', '2021-11-08', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(421, 28110, 'Solar System Polska sp. z o.o.', 'Wrocław', 'Chińska 3B', '52-118', 'Wrocław', 'dolnośląskie', '8322054224', 'OPC', 'umorzono', '2016-09-23', 'udzielenie koncesji', ''),
+(422, 69885, 'Solarfarm TKG sp. z o.o.', 'Milicz', 'ul. Trzebnicka 36', '56-300', 'Milicz', 'dolnośląskie', '9161394629', 'WEE', 'umorzono', '2021-11-08', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(423, 69282, 'SOLUB 9 sp. z o.o.', 'Gozdnica', 'ul. Iłowiańska 7', '68-130', 'Gozdnica', 'lubuskie', '9241916432', 'DEE', 'umorzono', '2023-01-24', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(424, 69282, 'SOLUB 9 sp. z o.o.', 'Gozdnica', 'ul. Iłowiańska 7', '68-130', 'Gozdnica', 'lubuskie', '9241916432', 'OEE', 'umorzono', '2023-01-24', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(425, 34526, 'SOLUMUS S.A. Energia Sp. k. w likwidacji', 'Warszawa', 'ul. Zdrojowa 40', '02-927', 'Warszawa', 'mazowieckie', '5252661442', 'OEE', 'umorzono', '2020-09-25', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(426, 34526, 'SOLUMUS S.A. Energia Sp. k. w likwidacji', 'Warszawa', 'ul. Zdrojowa 40', '02-927', 'Warszawa', 'mazowieckie', '5252661442', 'OPG', 'umorzono', '2022-01-20', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(427, 43335, 'Solviol 1 Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Marywilska 38/40', '03-228', 'Warszawa', 'mazowieckie', '7010620104', 'WEE', 'umorzono', '2019-07-26', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(428, 30617, 'Sornat Bonifacy Przedsiębiorstwo Transportowo Handlowe \\Trans-Serwis\\', 'Łopuszno', 'ul. Zakładowa 11A', '26-070', 'Łopuszno', 'świętokrzyskie', '6581002066', 'OPC', 'umorzono', '2016-09-06', 'udzielenie koncesji', ''),
+(429, 20050, 'SPEDGAZ, FIRMA HANDLOWO-USŁUGOWA \\DANMAR\\. MARIUSZ ROMANOWSKI', 'Skierniewice', 'Mokra Lewa 17', '96-100', 'Skierniewice', 'łódzkie', '8361137693', 'OPC', 'umorzono', '2016-09-16', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(430, 43166, 'Spółdzielnia \\Leśnianka\\', 'Leśna Podlaska', 'ul. Bialska 31', '21-542', 'Leśna Podlaska', 'lubelskie', '5370001193', 'OPC', 'umorzono', '2017-10-27', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(431, 1067, 'Stacja Paliw i Agencja Handlu i Usług Stanisław Horyza', 'Ostrów Wielkopolski', 'Krotoszyńska 179', '63-400', 'Ostrów Wielkopolski', 'wielkopolskie', '6221003129', 'OPZ', 'umorzono', '2016-09-30', 'udzielenie koncesji', ''),
+(432, 30580, 'STACJA PALIW I TRANSPORT Sp. z o.o.', 'Nowy Tomyśl', 'POZNAŃSKA 18', '64-300', 'Nowy Tomyśl', 'wielkopolskie', '7882015472', 'OPC', 'umorzono', '2016-09-20', 'udzielenie koncesji', ''),
+(433, 71560, 'STACJA PALIW ZMG Sp. z o.o.', 'Krzywiń', 'os. Brzozowiec 37', '64-010', 'Jerka', 'wielkopolskie', '6981864920', 'OPC', 'umorzono', '2024-01-31', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(434, 30565, 'STAMP Spółka z ograniczoną odpowiedzialnością', 'Przeworsk', 'Ul. Gorliczyńska 5a', '37-200', 'Przeworsk', 'podkarpackie', '7822512362', 'OPC', 'umorzono', '2016-09-20', 'udzielenie koncesji', ''),
+(435, 22757, 'Stanisław Wawrowicz FIRMA HANDLOWO-USŁUGOWA \\STACH\\', 'Nowa Brzeźnica', 'ul. Szkolna 7', '98-331', 'Nowa Brzeźnica', 'łódzkie', '5741041325', 'OPC', 'umorzono', '2017-03-20', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(436, 55748, 'STELAR Spółka z ograniczoną odpowiedzialnością', 'Chełm', 'ul. Okszowska 39', '22-100', 'Chełm', 'lubelskie', '5632434356', 'OPC', 'umorzono', '2018-06-25', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(437, 28186, 'Super Oil Sp. z o.o.', 'Poznań', 'ul. Lechicka 59 A lok. 2', '61-695', 'Poznań', 'wielkopolskie', '9721263071', 'OPC', 'umorzono', '2016-09-19', 'udzielenie koncesji', ''),
+(438, 20978, 'Swatowscy Sp z o. o.', 'Brzeg', 'ul. Saperska 1', '49-300', 'Brzeg', 'opolskie', '8952007315', 'OPC', 'umorzono', '2021-10-06', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(439, 10577, 'Świerczyński Roman Firma \\WACEK\\ Handel-Usługi', 'Przysucha', 'ul. Przemysłowa 14A', '26-400', 'Przysucha', 'mazowieckie', '7990009480', 'OPC', 'umorzono', '2016-09-12', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(440, 10920, 'Tadeusz Pietruszka Stacja Paliw', 'Chodzież', 'Podanin 77', '64-800', 'Chodzież', 'wielkopolskie', '7640101481', 'OPC', 'umorzono', '2016-09-28', 'udzielenie koncesji', ''),
+(441, 30668, 'TADOIL TADEUSZ GNIEWISZ', 'Łaznów', 'Łaznów 148A', '97-221', 'Łaznów', 'łódzkie', '7731049585', 'OPC', 'umorzono', '2016-09-16', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(442, 28166, 'Tawirex Sp. z o.o.', 'Łódź', 'Konstantego Ciołkowskiego 7 / 73', '93-510', 'Łódź', 'łódzkie', '7292710455', 'OPC', 'umorzono', '2016-10-04', 'udzielenie koncesji', ''),
+(443, 28366, 'TM-BIS Sp. z o.o.', 'Rakoniewice', 'Reymonta 1', '62-067', 'Rakoniewice', 'wielkopolskie', '9950236710', 'OPC', 'umorzono', '2016-09-28', 'udzielenie koncesji', ''),
+(444, 70765, 'TOBMAR Marcin Bugdał, Tomasz Bugdał s.c.', 'Gostynin', 'Stefana Żeromskiego 24', '09-500', 'Gostynin', 'mazowieckie', '9710679075', 'OPC', 'umorzono', '2022-12-01', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(445, 15668, 'Tomasz Głogowski GAZ-MEN', 'Bydgoszcz', 'ul. Leona Kruczkowskiego 2/58', '85-126', 'Bydgoszcz', 'kujawsko-pomorskie', '5591468647', 'OPC', 'umorzono', '2016-09-23', 'udzielenie koncesji', ''),
+(446, 70427, 'TOMSOL PALIWA spółka z ograniczoną odpowiedzialnością', 'Koszalin', 'ul. Lubuszan 4', '75-848', 'Koszalin', 'zachodniopomorskie', '6692565737', 'OPC', 'umorzono', '2022-08-29', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(447, 70989, 'TotalEnergies Gas & Power Limited', '', 'High Street 55-57, Redhill', 'RH1 1RX', 'Surrey', '', '', 'OEE', 'umorzono', '2023-07-27', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(448, 70989, 'TotalEnergies Gas & Power Limited', '', 'High Street 55-57, Redhill', 'RH1 1RX', 'Surrey', '', '', 'OPG', 'umorzono', '2023-07-19', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(449, 26356, 'Traden Spółka z ograniczoną odpowiedzialnością', 'Ożarów Mazowiecki', 'ul. Poznańska 86/88', '05-850', 'Jawczyce', 'mazowieckie', '1182112454', 'DEE', 'umorzono', '2021-05-12', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(450, 28185, 'Transoil sp. z o.o.', 'Solina', 'Solina 105', '38-612', 'Solina', 'podkarpackie', '6881300661', 'OPC', 'umorzono', '2016-09-16', 'udzielenie koncesji', ''),
+(451, 26596, 'Trifecta sp. z o.o.', 'Wrocław', 'ul. Nyska 59-61', '50-505', 'Wrocław', 'dolnośląskie', '8992776669', 'OPC', 'umorzono', '2016-10-03', 'udzielenie koncesji', ''),
+(452, 17825, 'Uni-Gaz Andrzej Sierpatowski', 'Bytom', 'ul. Składowa 16', '41-902', 'Bytom', 'śląskie', '6412248847', 'OPC', 'umorzono', '2017-03-28', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(453, 68498, 'UNIQ OIL Sp. z ograniczona odpowiedzialnością Spółka Komandytowa', 'Pułtusk', 'Mickiewicza 45 / 51', '06-100', 'Pułtusk', 'mazowieckie', '5681625694', 'OPC', 'umorzono', '2021-04-21', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(454, 68498, 'UNIQ OIL Sp. z ograniczona odpowiedzialnością Spółka Komandytowa', 'Pułtusk', 'Mickiewicza 45 / 51', '06-100', 'Pułtusk', 'mazowieckie', '5681625694', 'OPC', 'umorzono', '2023-03-03', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(455, 64697, 'URSA POLSKA Spółka z ograniczoną odpowiedzialnością', 'Ząbkowice', 'ul. Armii Krajowej 12', '42-520', 'Dąbrowa Górnicza', 'śląskie', '5341413645', 'OEE', 'umorzono', '2019-08-29', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(456, 64420, 'Usługi Transportowe Jerzy Nosko', 'Krynki', 'ul. gen. Józefa Bema 2 / 2', '16-120', 'Krynki', 'podlaskie', '5451277479', 'OPC', 'umorzono', '2019-04-03', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(457, 28159, 'UTHGRA sp. z o.o.', 'Wrocław', 'Krzycka 63/2', '53-019', 'Wrocław', 'dolnośląskie', '8992787584', 'OPC', 'umorzono', '2016-09-23', 'udzielenie koncesji', ''),
+(458, 24766, 'Uzdrowisko Ustka Sp. z o. o.', 'Ustka', 'ul. Beniowskiego 1', '76-270', 'Ustka', 'pomorskie', '8390206385', 'WEE', 'umorzono', '2018-11-20', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(459, 66119, 'VEOLIA ENERGY SUPPLY POLAND Spółka z ograniczoną odpowiedzialnością', 'Warszawa', 'ul. Puławska 2', '02-566', 'Warszawa', 'mazowieckie', '5213893579', 'OCC', 'umorzono', '2022-03-21', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(460, 30579, 'Vima Global S.A.', 'Wrocław', 'ul. Kwidzyńska 3', '51-415', 'Wrocław', 'dolnośląskie', '8681963872', 'OPC', 'umorzono', '2016-09-27', 'udzielenie koncesji', ''),
+(461, 23813, 'Vlassenroot Polska sp. z o.o.', 'Gliwice', 'ul. Bojkowska 59', '44-100', 'Gliwice', 'śląskie', '6762329428', 'WEE', 'umorzono', '2018-07-04', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(462, 26865, 'WARSO Sp. z o.o.', 'Warszawa', 'al. Jerozolimskie 81 / 7.10', '02-001', 'Warszawa', 'mazowieckie', '5223032028', 'OPC', 'umorzono', '2016-10-03', 'udzielenie koncesji', ''),
+(463, 13629, 'WARTER Wojciech Rychlik Spółka komandytowa', 'Warszawa', 'ul. Koralowa 60', '02-967', 'Warszawa', 'mazowieckie', '5372389379', 'WCC', 'umorzono', '2018-09-21', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(464, 26934, 'WB SERVICE Sp. z o.o.', 'Kalisz', 'ul. Złota 71, lok. 412', '62-800', 'Kalisz', 'wielkopolskie', '6182150687', 'OPC', 'umorzono', '2016-09-28', 'udzielenie koncesji', ''),
+(465, 26740, 'WESTING Sp. z o.o.', 'Poznań', 'ul. Przemysłowa 39 lok. 113B', '61-541', 'Poznań', 'wielkopolskie', '7831734010', 'OPC', 'umorzono', '2016-09-30', 'udzielenie koncesji', ''),
+(466, 64667, 'WIGORGAZ Sp. z o.o.', 'Warszawa', 'ul. Drogomilska 12 / 1', '01-361', 'Warszawa', 'mazowieckie', '5223079260', 'OPC', 'umorzono', '2019-10-03', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(467, 28410, 'WIND POWER PLANT SP. z o.o.', 'Rzeszów', 'ul. Kwietniowa 58', '35-303', 'Rzeszów', 'podkarpackie', '5170306634', 'OPC', 'umorzono', '2016-09-12', 'udzielenie koncesji', ''),
+(468, 28410, 'WIND POWER PLANT SP. z o.o.', 'Rzeszów', 'ul. Kwietniowa 58', '35-303', 'Rzeszów', 'podkarpackie', '5170306634', 'OPZ', 'umorzono', '2016-09-12', 'udzielenie koncesji', ''),
+(469, 23284, 'WINDHUNTER PROGNOZA Spółka z ograniczoną odpowiedzialnością', 'Koszalin', 'ul. Morska 18A', '75-221', 'Koszalin', 'zachodniopomorskie', '6692517856', 'OEE', 'umorzono', '2017-06-09', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(470, 26764, 'Wireco Poland Spółka z ograniczoną odpowiedzialnością', 'Włocławek', 'ul. Polna 26/74', '87-800', 'Włocławek', 'kujawsko-pomorskie', '7010305673', 'OEE', 'umorzono', '2019-10-01', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(471, 65719, 'WIWAX Sp. z o.o.', 'Płock', 'Długa 3', '09-402', 'Płock', 'mazowieckie', '7742965966', 'WPC', 'umorzono', '2020-05-20', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(472, 69824, 'WOJMAR Sławomir Dąbrowski', 'Zielona Góra', 'ul. Przylep-Solidarności 97', '66-015', 'Zielona Góra', 'lubuskie', '9291636060', 'WEE', 'umorzono', '2021-11-18', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(473, 26681, 'WRATISLAVIA- BIODIESEL S.A.', 'Wrocław', 'ul. Monopolowa 4', '51-501', 'Wrocław', 'dolnośląskie', '8952037782', 'WPC', 'umorzono', '2020-02-14', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(474, 26166, 'Z.P.H.U. \\DANPOL\\ Józef Okarma', 'Zagórów', 'Michalinów 21A', '62-410', 'Michalinów', 'wielkopolskie', '6670002234', 'WEE', 'umorzono', '2019-09-03', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(475, 18538, 'Zabrzańskie Przedsiębiorstwo Wodociągów i Kanalizacji Spółka z ograniczoną odpowiedzialnością', 'Zabrze', 'ul. Wolności 215', '41-800', 'Zabrze', 'śląskie', '6480000278', 'WEE', 'umorzono', '2018-07-25', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(476, 13702, 'Zakład Budowlany Stanisław Andrysiewicz', 'Tarnobrzeg', 'ul. Kopernika 32', '39-400', 'Tarnobrzeg', 'podkarpackie', '8670001997', 'OPG', 'umorzono', '2017-08-10', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(477, 16714, 'ZAKŁAD GAZOWNICTWA BEZPRZEWODOWEGO \\KRIS-GAZ\\ URBANIAK JAN', 'Zduńska Wola', 'ul. Mickiewicza 52A', '98-220', 'Zduńska Wola', 'łódzkie', '8291293903', 'OPC', 'umorzono', '2016-09-12', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
+(478, 41954, 'ZAKŁAD OBRÓBKI DREWNA TARTAK S.C.', 'LUBARTÓW', 'UL. KWIATOWA 2', '21-100', 'LUBARTÓW', 'lubelskie', '7141001241', 'OPC', 'umorzono', '2017-08-04', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
+(479, 24773, 'Zakład Robót Budowlano Montarzowych Roman Pawlikowski', 'Różanki', 'ul. Gorzowska 4a/2', '66-415', 'Różanki', 'lubuskie', '5991444202', 'OPC', 'umorzono', '2016-10-06', 'udzielenie koncesji', ''),
+(480, 15643, 'Zakład Włókienniczy \\Gotex\\ Andrzej Gołębiewski', 'Lubicz Górny', 'ul. Warszawska 24', '87-162', 'Lubicz Górny', 'kujawsko-pomorskie', '8791373479', 'OPC', 'umorzono', '2016-09-22', 'udzielenie koncesji', ''),
+(481, 605, 'Zakłady Górniczo-Hutnicze \\Bolesław\\ S.A.', 'Bukowno', 'ul. Kolejowa 37', '32-332', 'Bukowno', 'małopolskie', '6370102196', 'PCC', 'umorzono', '2017-08-31', 'udzielenie koncesji', 'art. 105 § 2 kpa');
 INSERT INTO `concession_remitted` (`id`, `dkn`, `nazwa`, `poczta`, `adres`, `kod`, `miejscowosc`, `wojewodztwo`, `nip`, `rodzajKoncesji`, `sposobZakonczenia`, `dataWydania`, `sprawa`, `podstawaPrawna`) VALUES
-(462, 26865, 'WARSO Sp. z o.o.', 'Warszawa', 'al. Jerozolimskie 81 / 7.10', '02-001', 'Warszawa', 'mazowieckie', '5223032028', 'OPC', 'umorzono', '2016-10-03 00:00:00', 'udzielenie koncesji', ''),
-(463, 13629, 'WARTER Wojciech Rychlik Spółka komandytowa', 'Warszawa', 'ul. Koralowa 60', '02-967', 'Warszawa', 'mazowieckie', '5372389379', 'WCC', 'umorzono', '2018-09-21 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(464, 26934, 'WB SERVICE Sp. z o.o.', 'Kalisz', 'ul. Złota 71, lok. 412', '62-800', 'Kalisz', 'wielkopolskie', '6182150687', 'OPC', 'umorzono', '2016-09-28 00:00:00', 'udzielenie koncesji', ''),
-(465, 26740, 'WESTING Sp. z o.o.', 'Poznań', 'ul. Przemysłowa 39 lok. 113B', '61-541', 'Poznań', 'wielkopolskie', '7831734010', 'OPC', 'umorzono', '2016-09-30 00:00:00', 'udzielenie koncesji', ''),
-(466, 64667, 'WIGORGAZ Sp. z o.o.', 'Warszawa', 'ul. Drogomilska 12 / 1', '01-361', 'Warszawa', 'mazowieckie', '5223079260', 'OPC', 'umorzono', '2019-10-03 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(467, 28410, 'WIND POWER PLANT SP. z o.o.', 'Rzeszów', 'ul. Kwietniowa 58', '35-303', 'Rzeszów', 'podkarpackie', '5170306634', 'OPC', 'umorzono', '2016-09-12 00:00:00', 'udzielenie koncesji', ''),
-(468, 28410, 'WIND POWER PLANT SP. z o.o.', 'Rzeszów', 'ul. Kwietniowa 58', '35-303', 'Rzeszów', 'podkarpackie', '5170306634', 'OPZ', 'umorzono', '2016-09-12 00:00:00', 'udzielenie koncesji', ''),
-(469, 23284, 'WINDHUNTER PROGNOZA Spółka z ograniczoną odpowiedzialnością', 'Koszalin', 'ul. Morska 18A', '75-221', 'Koszalin', 'zachodniopomorskie', '6692517856', 'OEE', 'umorzono', '2017-06-09 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(470, 26764, 'Wireco Poland Spółka z ograniczoną odpowiedzialnością', 'Włocławek', 'ul. Polna 26/74', '87-800', 'Włocławek', 'kujawsko-pomorskie', '7010305673', 'OEE', 'umorzono', '2019-10-01 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(471, 65719, 'WIWAX Sp. z o.o.', 'Płock', 'Długa 3', '09-402', 'Płock', 'mazowieckie', '7742965966', 'WPC', 'umorzono', '2020-05-20 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(472, 69824, 'WOJMAR Sławomir Dąbrowski', 'Zielona Góra', 'ul. Przylep-Solidarności 97', '66-015', 'Zielona Góra', 'lubuskie', '9291636060', 'WEE', 'umorzono', '2021-11-18 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(473, 26681, 'WRATISLAVIA- BIODIESEL S.A.', 'Wrocław', 'ul. Monopolowa 4', '51-501', 'Wrocław', 'dolnośląskie', '8952037782', 'WPC', 'umorzono', '2020-02-14 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(474, 26166, 'Z.P.H.U. \\DANPOL\\ Józef Okarma', 'Zagórów', 'Michalinów 21A', '62-410', 'Michalinów', 'wielkopolskie', '6670002234', 'WEE', 'umorzono', '2019-09-03 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(475, 18538, 'Zabrzańskie Przedsiębiorstwo Wodociągów i Kanalizacji Spółka z ograniczoną odpowiedzialnością', 'Zabrze', 'ul. Wolności 215', '41-800', 'Zabrze', 'śląskie', '6480000278', 'WEE', 'umorzono', '2018-07-25 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(476, 13702, 'Zakład Budowlany Stanisław Andrysiewicz', 'Tarnobrzeg', 'ul. Kopernika 32', '39-400', 'Tarnobrzeg', 'podkarpackie', '8670001997', 'OPG', 'umorzono', '2017-08-10 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(477, 16714, 'ZAKŁAD GAZOWNICTWA BEZPRZEWODOWEGO \\KRIS-GAZ\\ URBANIAK JAN', 'Zduńska Wola', 'ul. Mickiewicza 52A', '98-220', 'Zduńska Wola', 'łódzkie', '8291293903', 'OPC', 'umorzono', '2016-09-12 00:00:00', 'udzielenie koncesji', 'art. 105 § 1 kpa'),
-(478, 41954, 'ZAKŁAD OBRÓBKI DREWNA TARTAK S.C.', 'LUBARTÓW', 'UL. KWIATOWA 2', '21-100', 'LUBARTÓW', 'lubelskie', '7141001241', 'OPC', 'umorzono', '2017-08-04 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(479, 24773, 'Zakład Robót Budowlano Montarzowych Roman Pawlikowski', 'Różanki', 'ul. Gorzowska 4a/2', '66-415', 'Różanki', 'lubuskie', '5991444202', 'OPC', 'umorzono', '2016-10-06 00:00:00', 'udzielenie koncesji', ''),
-(480, 15643, 'Zakład Włókienniczy \\Gotex\\ Andrzej Gołębiewski', 'Lubicz Górny', 'ul. Warszawska 24', '87-162', 'Lubicz Górny', 'kujawsko-pomorskie', '8791373479', 'OPC', 'umorzono', '2016-09-22 00:00:00', 'udzielenie koncesji', ''),
-(481, 605, 'Zakłady Górniczo-Hutnicze \\Bolesław\\ S.A.', 'Bukowno', 'ul. Kolejowa 37', '32-332', 'Bukowno', 'małopolskie', '6370102196', 'PCC', 'umorzono', '2017-08-31 00:00:00', 'udzielenie koncesji', 'art. 105 § 2 kpa'),
-(482, 28334, 'ZETA GOLD Sp. z o.o.', 'Bydgoszcz', 'ul. Gajowa 102 lok 5', '85-717', 'Bydgoszcz', 'kujawsko-pomorskie', '5542938722', 'OPC', 'umorzono', '2016-09-23 00:00:00', 'udzielenie koncesji', '');
+(482, 28334, 'ZETA GOLD Sp. z o.o.', 'Bydgoszcz', 'ul. Gajowa 102 lok 5', '85-717', 'Bydgoszcz', 'kujawsko-pomorskie', '5542938722', 'OPC', 'umorzono', '2016-09-23', 'udzielenie koncesji', '');
 
 -- --------------------------------------------------------
 
 --
--- Struktura tabeli dla tabeli `concession_withdrawn`
+-- Table structure for table `concession_withdrawn`
 --
 
 CREATE TABLE `concession_withdrawn` (
@@ -11009,7 +11167,7 @@ INSERT INTO `concession_withdrawn` (`id`, `dkn`, `nazwa`, `poczta`, `adres`, `ko
 -- --------------------------------------------------------
 
 --
--- Struktura tabeli dla tabeli `concession_without_recognition`
+-- Table structure for table `concession_without_recognition`
 --
 
 CREATE TABLE `concession_without_recognition` (
@@ -11851,54 +12009,147 @@ INSERT INTO `concession_without_recognition` (`id`, `dkn`, `nazwa`, `poczta`, `a
 (810, 49486, 'ZMK SAS Spółka z ograniczoną odpowiedzialnością', 'Busko-Zdrój', 'ul. Przemysłowa 3', '28-100', 'Owczary', 'świętokrzyskie', '6551975634', '368874952', 'WEE', 'bez rozpoznania', '2019-04-03', 'udzielenie koncesji', 'art. 35 ust. 2b uPe'),
 (811, 69265, 'ŻABICEPV SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ', 'Warszawa', 'ul. Tytusa Chałubińskiego 8', '00-613', 'Warszawa', 'mazowieckie', '7692235041', '385061581', 'WEE', 'bez rozpoznania', '2021-05-31', 'udzielenie koncesji', 'art. 35 ust. 2b uPe');
 
+-- --------------------------------------------------------
+
 --
--- Indeksy dla zrzutów tabel
+-- Stand-in structure for view `koncesje_inne_wydane_na_wojewodztwo`
+-- (See below for the actual view)
+--
+CREATE TABLE `koncesje_inne_wydane_na_wojewodztwo` (
+`wojewodztwo` varchar(255)
+,`ilosc` bigint(21)
+);
+
+-- --------------------------------------------------------
+
+--
+-- Stand-in structure for view `koncesje_paliwowe_wydane_na_wojewodztwo`
+-- (See below for the actual view)
+--
+CREATE TABLE `koncesje_paliwowe_wydane_na_wojewodztwo` (
+`wojewodztwo` varchar(255)
+,`ilosc` bigint(21)
+);
+
+-- --------------------------------------------------------
+
+--
+-- Stand-in structure for view `koncesje_wygasniete_w_tym_miesiacu`
+-- (See below for the actual view)
+--
+CREATE TABLE `koncesje_wygasniete_w_tym_miesiacu` (
+`id` int(11)
+,`dkn` int(11)
+,`nazwa` varchar(255)
+,`poczta` varchar(255)
+,`adres` varchar(255)
+,`kod` varchar(20)
+,`miejscowosc` varchar(255)
+,`wojewodztwo` varchar(255)
+,`nip` varchar(20)
+,`regon` varchar(20)
+,`rodzajKoncesji` varchar(3)
+,`dataWygasniecia` date
+,`sposobRozstrzygniecia` varchar(255)
+,`podstawaPrawna` varchar(255)
+,`uwagi` varchar(255)
+);
+
+-- --------------------------------------------------------
+
+--
+-- Stand-in structure for view `wszystkie_koncesje_wydane_na_wojewodztwo`
+-- (See below for the actual view)
+--
+CREATE TABLE `wszystkie_koncesje_wydane_na_wojewodztwo` (
+`wojewodztwo` varchar(255)
+,`liczba_danych` bigint(21)
+);
+
+-- --------------------------------------------------------
+
+--
+-- Structure for view `koncesje_inne_wydane_na_wojewodztwo`
+--
+DROP TABLE IF EXISTS `koncesje_inne_wydane_na_wojewodztwo`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `koncesje_inne_wydane_na_wojewodztwo`  AS SELECT `concession_other_fuel`.`wojewodztwo` AS `wojewodztwo`, count(0) AS `ilosc` FROM `concession_other_fuel` WHERE `concession_other_fuel`.`wojewodztwo` <> '' GROUP BY `concession_other_fuel`.`wojewodztwo` ;
+
+-- --------------------------------------------------------
+
+--
+-- Structure for view `koncesje_paliwowe_wydane_na_wojewodztwo`
+--
+DROP TABLE IF EXISTS `koncesje_paliwowe_wydane_na_wojewodztwo`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `koncesje_paliwowe_wydane_na_wojewodztwo`  AS SELECT `concession_fuel`.`wojewodztwo` AS `wojewodztwo`, count(0) AS `ilosc` FROM `concession_fuel` GROUP BY `concession_fuel`.`wojewodztwo` ;
+
+-- --------------------------------------------------------
+
+--
+-- Structure for view `koncesje_wygasniete_w_tym_miesiacu`
+--
+DROP TABLE IF EXISTS `koncesje_wygasniete_w_tym_miesiacu`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `koncesje_wygasniete_w_tym_miesiacu`  AS SELECT `concession_expiry`.`id` AS `id`, `concession_expiry`.`dkn` AS `dkn`, `concession_expiry`.`nazwa` AS `nazwa`, `concession_expiry`.`poczta` AS `poczta`, `concession_expiry`.`adres` AS `adres`, `concession_expiry`.`kod` AS `kod`, `concession_expiry`.`miejscowosc` AS `miejscowosc`, `concession_expiry`.`wojewodztwo` AS `wojewodztwo`, `concession_expiry`.`nip` AS `nip`, `concession_expiry`.`regon` AS `regon`, `concession_expiry`.`rodzajKoncesji` AS `rodzajKoncesji`, `concession_expiry`.`dataWygasniecia` AS `dataWygasniecia`, `concession_expiry`.`sposobRozstrzygniecia` AS `sposobRozstrzygniecia`, `concession_expiry`.`podstawaPrawna` AS `podstawaPrawna`, `concession_expiry`.`uwagi` AS `uwagi` FROM `concession_expiry` WHERE year(`concession_expiry`.`dataWygasniecia`) = year(current_timestamp()) AND month(`concession_expiry`.`dataWygasniecia`) = month(current_timestamp()) ;
+
+-- --------------------------------------------------------
+
+--
+-- Structure for view `wszystkie_koncesje_wydane_na_wojewodztwo`
+--
+DROP TABLE IF EXISTS `wszystkie_koncesje_wydane_na_wojewodztwo`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `wszystkie_koncesje_wydane_na_wojewodztwo`  AS SELECT `wszystkie_dane`.`wojewodztwo` AS `wojewodztwo`, count(0) AS `liczba_danych` FROM (select `concession_fuel`.`wojewodztwo` AS `wojewodztwo` from `concession_fuel` union all select `concession_other_fuel`.`wojewodztwo` AS `wojewodztwo` from `concession_other_fuel`) AS `wszystkie_dane` WHERE `wszystkie_dane`.`wojewodztwo` <> '' GROUP BY `wszystkie_dane`.`wojewodztwo` ORDER BY `wszystkie_dane`.`wojewodztwo` ASC ;
+
+--
+-- Indexes for dumped tables
 --
 
 --
--- Indeksy dla tabeli `concession_application`
+-- Indexes for table `concession_application`
 --
 ALTER TABLE `concession_application`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indeksy dla tabeli `concession_expiry`
+-- Indexes for table `concession_expiry`
 --
 ALTER TABLE `concession_expiry`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indeksy dla tabeli `concession_fuel`
+-- Indexes for table `concession_fuel`
 --
 ALTER TABLE `concession_fuel`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indeksy dla tabeli `concession_other_fuel`
+-- Indexes for table `concession_other_fuel`
 --
 ALTER TABLE `concession_other_fuel`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indeksy dla tabeli `concession_promise`
+-- Indexes for table `concession_promise`
 --
 ALTER TABLE `concession_promise`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indeksy dla tabeli `concession_refused`
+-- Indexes for table `concession_refused`
 --
 ALTER TABLE `concession_refused`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indeksy dla tabeli `concession_remitted`
+-- Indexes for table `concession_remitted`
 --
 ALTER TABLE `concession_remitted`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indeksy dla tabeli `concession_withdrawn`
+-- Indexes for table `concession_withdrawn`
 --
 ALTER TABLE `concession_withdrawn`
   ADD PRIMARY KEY (`id`);
@@ -11954,6 +12205,24 @@ ALTER TABLE `concession_remitted`
 --
 ALTER TABLE `concession_withdrawn`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=830;
+
+DELIMITER $$
+--
+-- Events
+--
+CREATE DEFINER=`root`@`localhost` EVENT `backup_tygodniowy` ON SCHEDULE EVERY 1 WEEK STARTS '2024-03-24 19:49:02' ON COMPLETION NOT PRESERVE ENABLE DO BEGIN 
+    CALL `ExportTableToCSV`('concession_application');
+    CALL `ExportTableToCSV`('concession_expiry');
+    CALL `ExportTableToCSV`('concession_fuel');
+    CALL `ExportTableToCSV`('concession_other_fuel');
+    CALL `ExportTableToCSV`('concession_promise');
+    CALL `ExportTableToCSV`('concession_refused');
+    CALL `ExportTableToCSV`('concession_remitted');
+    CALL `ExportTableToCSV`('concession_withdrawn');
+    CALL `ExportTableToCSV`('concession_without_recognition');
+END$$
+
+DELIMITER ;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
