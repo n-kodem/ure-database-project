@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Mar 24, 2024 at 08:07 PM
+-- Generation Time: Mar 24, 2024 at 09:11 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -207,7 +207,7 @@ CREATE TABLE `concession_application` (
 
 INSERT INTO `concession_application` (`id`, `dkn`, `nazwa`, `poczta`, `adres`, `kod`, `miejscowosc`, `wojewodztwo`, `nip`, `regon`, `rodzajKoncesji`, `dataWplywu`, `sprawa`) VALUES
 (1, 72073, '\\PAKMAN\\ SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ', 'Gołuchów', 'Tursko 29', '63-322', 'Tursko', 'wielkopolskie', '6181974682', '251592078', 'OPC', '2024-03-14', 'udzielenie koncesji'),
-(2, 71540, 'KOKOBIS SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ', 'DULOWA', 'WITOSA 4', '32-545', 'DULOWA', 'małopolskie', '6282291306', '52524380000000', 'OPC', '2023-09-28', 'udzielenie koncesji'),
+(2, 71540, 'KOKOBIS SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ', 'Dulowa', 'WITOSA 4', '32-545', 'DULOWA', 'małopolskie', '6282291306', '52524380000000', 'OPC', '2023-09-28', 'udzielenie koncesji'),
 (3, 69830, '\\AGROMAKS\\ SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ', 'Nowa Sucha', 'Mizerka 57 A', '96-513', 'Mizerka', 'mazowieckie', '8370000120', '005281593', 'WEE', '2023-04-19', 'udzielenie promesy'),
 (4, 71870, '\\AGROMECH\\ SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ', 'Rawicz', 'ul. Hallera 2A', '63-900', 'Rawicz', 'wielkopolskie', '6991954748', '302490714', 'OPC', '2024-01-03', 'udzielenie koncesji'),
 (5, 20009, '\\ALMAR\\ Sp. z o.o.', 'Rozprza', 'Mierzyn 147A', '97-340', 'Mierzyn', 'łódzkie', '7712829483', '100691171', 'OPC', '2024-02-26', 'zmiana koncesji'),
@@ -1159,6 +1159,31 @@ INSERT INTO `concession_application` (`id`, `dkn`, `nazwa`, `poczta`, `adres`, `
 (948, 7245, 'ZUBI Grzegorz Dygas', 'Ciepielów', 'Stary Ciepielów 114', '27-310', 'Ciepielów', 'mazowieckie', '8111001484', '670740360', 'OPC', '2024-01-12', 'udzielenie koncesji'),
 (949, 7245, 'ZUBI Grzegorz Dygas', 'Ciepielów', 'Stary Ciepielów 114', '27-310', 'Ciepielów', 'mazowieckie', '8111001484', '670740360', 'OPC', '2024-02-14', 'zmiana koncesji'),
 (950, 26375, 'Związek Komunalny Gmin \\Czyste Miasto, Czysta Gmina\\', 'Kalisz', 'Plac Św. Józefa 5', '62-800', 'Kalisz', 'wielkopolskie', '6181844896', '250810478', 'WEE', '2023-08-03', 'udzielenie promesy');
+
+--
+-- Triggers `concession_application`
+--
+DELIMITER $$
+CREATE TRIGGER `concession_application_delete` AFTER DELETE ON `concession_application` FOR EACH ROW BEGIN
+    INSERT INTO data_changes_logs (operacja, uzytkownik, tabela, czas)
+    VALUES ('DELETE', CURRENT_USER(), 'concession_application', NOW());
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `concession_application_insert` AFTER INSERT ON `concession_application` FOR EACH ROW BEGIN
+    INSERT INTO data_changes_logs (operacja, uzytkownik, tabela, czas)
+    VALUES ('INSERT', CURRENT_USER(), 'concession_application', NOW());
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `concession_application_update` AFTER UPDATE ON `concession_application` FOR EACH ROW BEGIN
+    INSERT INTO data_changes_logs (operacja, uzytkownik, tabela, czas)
+    VALUES ('UPDATE', CURRENT_USER(), 'concession_application', NOW());
+END
+$$
+DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -6097,6 +6122,31 @@ INSERT INTO `concession_expiry` (`id`, `dkn`, `nazwa`, `poczta`, `adres`, `kod`,
 (4882, 63994, 'Żarnowiec PV Spółka z ograniczoną odpowiedzialnością', 'Wrocław', 'ul. Łaciarska 4 / 205', '50-104', 'Wrocław', 'dolnośląskie', '6842641518', '362725501', 'WEE', '2022-01-25', 'stwierdzenie wygaśnięcia', 'art. 162 § 1 pkt 1 kpa', ''),
 (4883, 2569, 'Żegluga Ostródzko - Elbląska Sp. z o. o.', 'Ostróda', 'ul. Grunwaldzka 49', '14-100', 'Ostróda', 'warmińsko-mazurskie', '7412111824', '280582249', 'OPC', '2019-02-20', 'stwierdzenie wygaśnięcia', 'art. 16 ust. 4 ustawy z 22.07.2016 (Dz. U. 2016 r. poz. 1165)', '');
 
+--
+-- Triggers `concession_expiry`
+--
+DELIMITER $$
+CREATE TRIGGER `concession_expiry_delete` AFTER DELETE ON `concession_expiry` FOR EACH ROW BEGIN
+    INSERT INTO data_changes_logs (operacja, uzytkownik, tabela, czas)
+    VALUES ('DELETE', CURRENT_USER(), 'concession_expiry', NOW());
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `concession_expiry_insert` AFTER INSERT ON `concession_expiry` FOR EACH ROW BEGIN
+    INSERT INTO data_changes_logs (operacja, uzytkownik, tabela, czas)
+    VALUES ('INSERT', CURRENT_USER(), 'concession_expiry', NOW());
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `concession_expiry_update` AFTER UPDATE ON `concession_expiry` FOR EACH ROW BEGIN
+    INSERT INTO data_changes_logs (operacja, uzytkownik, tabela, czas)
+    VALUES ('UPDATE', CURRENT_USER(), 'concession_expiry', NOW());
+END
+$$
+DELIMITER ;
+
 -- --------------------------------------------------------
 
 --
@@ -6207,6 +6257,31 @@ INSERT INTO `concession_fuel` (`id`, `dkn`, `nazwa`, `adres`, `kod`, `miejscowos
 (73, 16814, '\\BZW PARA\\ sp.j.', 'ul. Partyzantów 111', '28-100', 'Busko-Zdrój', 'świętokrzyskie', '6551905533', 'Busko-Zdrój', '260084975', '', 'OPC', '2017-07-21', '2017-11-11', '2040-12-31', NULL, NULL, '', 'benzyny silnikowe:2710 12 45,2710 12 49;gaz płynny LPG:2711 12,2711 13,2711 14 00,2711 19 00;oleje napędowe:2710 19 43,2710 20 11', 'https://api.ure.gov.pl/api/ConcessionFuel/download/407F030B-93F8-4F82-9699-E2925A208D7F', ''),
 (74, 12203, '\\C&C\\ Przedsiębiorstwo Handlowo-Usługowe Szymon Czajkowski , Arkadiusz Czajkowski s.c.', 'Jakubowice 25D', '27-530', 'Jakubowice', 'świętokrzyskie', '8631585563', 'Ożarów', '292687878', '', 'OPC', '2014-07-23', '2014-10-21', '2040-12-31', NULL, NULL, '', 'benzyny silnikowe:2710 12 45,2710 12 49;gaz płynny LPG:2711 12,2711 13,2711 14 00,2711 19 00;oleje napędowe:2710 19 43,2710 20 11', 'https://api.ure.gov.pl/api/ConcessionFuel/download/18E672FE-F1B5-4656-B663-A0F88234F14D', ''),
 (75, 15986, '\\Calvados\\ Sp. z o.o.', 'ul. Podgórna 65b', '87-300', 'Brodnica', 'kujawsko-pomorskie', '7822101966', 'Brodnica', '639565368', '', 'OPC', '2011-03-08', '2011-03-10', '2030-12-31', NULL, NULL, '', 'benzyny silnikowe:2710 12 45,2710 12 49;gaz płynny LPG:2711 12,2711 13,2711 14 00,2711 19 00;oleje napędowe:2710 19 43,2710 20 11', 'https://api.ure.gov.pl/api/ConcessionFuel/download/70A2EE82-4045-4EAD-BF5B-97FF204BF324', '');
+
+--
+-- Triggers `concession_fuel`
+--
+DELIMITER $$
+CREATE TRIGGER `concession_fuel_delete` AFTER DELETE ON `concession_fuel` FOR EACH ROW BEGIN
+    INSERT INTO data_changes_logs (operacja, uzytkownik, tabela, czas)
+    VALUES ('DELETE', CURRENT_USER(), 'concession_fuel', NOW());
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `concession_fuel_insert` AFTER INSERT ON `concession_fuel` FOR EACH ROW BEGIN
+    INSERT INTO data_changes_logs (operacja, uzytkownik, tabela, czas)
+    VALUES ('INSERT', CURRENT_USER(), 'concession_fuel', NOW());
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `concession_fuel_update` AFTER UPDATE ON `concession_fuel` FOR EACH ROW BEGIN
+    INSERT INTO data_changes_logs (operacja, uzytkownik, tabela, czas)
+    VALUES ('UPDATE', CURRENT_USER(), 'concession_fuel', NOW());
+END
+$$
+DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -9078,6 +9153,31 @@ INSERT INTO `concession_other_fuel` (`id`, `dkn`, `nazwa`, `poczta`, `adres`, `k
 (2820, 571, 'Żuromińskie Zakłady Komunalne Sp. z o.o.', 'Żuromin', 'ul. Szpitalna 125', '09-300', 'Żuromin', 'mazowieckie', '5720000485', '130505179', '', 'PCC', '2008-11-06', '2008-12-01', '2030-12-31', 'https://api.ure.gov.pl/api/ConcessionFuel/download/274707EA-3430-4A86-808C-945D10DD3EAD', ''),
 (2821, 571, 'Żuromińskie Zakłady Komunalne Sp. z o.o.', 'Żuromin', 'ul. Szpitalna 125', '09-300', 'Żuromin', 'mazowieckie', '5720000485', '130505179', '', 'WCC', '2008-11-06', '2008-12-01', '2030-12-31', 'https://api.ure.gov.pl/api/ConcessionFuel/download/38A76ECE-5BA6-48B0-9F45-F9D03D781A32', '');
 
+--
+-- Triggers `concession_other_fuel`
+--
+DELIMITER $$
+CREATE TRIGGER `concession_other_fuel_delete` AFTER DELETE ON `concession_other_fuel` FOR EACH ROW BEGIN
+    INSERT INTO data_changes_logs (operacja, uzytkownik, tabela, czas)
+    VALUES ('DELETE', CURRENT_USER(), 'concession_other_fuel', NOW());
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `concession_other_fuel_insert` AFTER INSERT ON `concession_other_fuel` FOR EACH ROW BEGIN
+    INSERT INTO data_changes_logs (operacja, uzytkownik, tabela, czas)
+    VALUES ('INSERT', CURRENT_USER(), 'concession_other_fuel', NOW());
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `concession_other_fuel_update` AFTER UPDATE ON `concession_other_fuel` FOR EACH ROW BEGIN
+    INSERT INTO data_changes_logs (operacja, uzytkownik, tabela, czas)
+    VALUES ('UPDATE', CURRENT_USER(), 'concession_other_fuel', NOW());
+END
+$$
+DELIMITER ;
+
 -- --------------------------------------------------------
 
 --
@@ -9519,6 +9619,31 @@ INSERT INTO `concession_promise` (`id`, `dkn`, `nazwa`, `adres`, `kod`, `miejsco
 (410, 64661, 'ZOTT Polska Sp. zo.o.', 'ul. Chłodnicza 6', '43-315', 'Opole', 'opolskie', 8990204006, '931620058', 'WEE', '2023-12-12', '2023-12-12', '2026-12-31', 'Opole'),
 (411, 26375, 'Związek Komunalny Gmin \\Czyste Miasto, Czysta Gmina\\', 'Plac Św. Józefa 5', '62-800', 'Kalisz', 'wielkopolskie', 6181844896, '250810478', 'WEE', '2020-10-29', '2020-10-29', '2024-12-31', 'Kalisz');
 
+--
+-- Triggers `concession_promise`
+--
+DELIMITER $$
+CREATE TRIGGER `concession_promise_delete` AFTER DELETE ON `concession_promise` FOR EACH ROW BEGIN
+    INSERT INTO data_changes_logs (operacja, uzytkownik, tabela, czas)
+    VALUES ('DELETE', CURRENT_USER(), 'concession_promise', NOW());
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `concession_promise_insert` AFTER INSERT ON `concession_promise` FOR EACH ROW BEGIN
+    INSERT INTO data_changes_logs (operacja, uzytkownik, tabela, czas)
+    VALUES ('INSERT', CURRENT_USER(), 'concession_promise', NOW());
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `concession_promise_update` AFTER UPDATE ON `concession_promise` FOR EACH ROW BEGIN
+    INSERT INTO data_changes_logs (operacja, uzytkownik, tabela, czas)
+    VALUES ('UPDATE', CURRENT_USER(), 'concession_promise', NOW());
+END
+$$
+DELIMITER ;
+
 -- --------------------------------------------------------
 
 --
@@ -9789,6 +9914,31 @@ INSERT INTO `concession_refused` (`id`, `dkn`, `nazwa`, `poczta`, `adres`, `kod`
 (238, 1310, 'Zakłady Porcelany Stołowej LUBIANA S.A.', 'Łubiana', 'ul. Zakładowa 1', '83-407', 'Łubiana', 'pomorskie', '5910004144', '190037085', 'OEE', 'odmowa', '2018-01-17', 'udzielenie koncesji', 'art. 35 ust. 3 uPe'),
 (239, 34445, 'ZORION Spółka Akcyjna', 'Katowice', 'ul. Walentego Roździeńskiego 188C', '40-203', 'Katowice', 'śląskie', '', '', 'OEE', 'odmowa', '2017-09-26', 'udzielenie koncesji', 'art. 35 ust. 3 uPe'),
 (240, 65383, 'Żyrardowska Fundacja Ochrony Przeciwpożarowej i Ratownictwa', 'Żyrardów', 'ul. 1 Maja 61', '96-300', 'Żyrardów', 'mazowieckie', '8381700677', '017380073', 'OPC', 'odmowa', '2021-04-15', 'udzielenie koncesji', 'art. 35 ust. 3 uPe');
+
+--
+-- Triggers `concession_refused`
+--
+DELIMITER $$
+CREATE TRIGGER `concession_refused_delete` AFTER DELETE ON `concession_refused` FOR EACH ROW BEGIN
+    INSERT INTO data_changes_logs (operacja, uzytkownik, tabela, czas)
+    VALUES ('DELETE', CURRENT_USER(), 'concession_refused', NOW());
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `concession_refused_insert` AFTER INSERT ON `concession_refused` FOR EACH ROW BEGIN
+    INSERT INTO data_changes_logs (operacja, uzytkownik, tabela, czas)
+    VALUES ('INSERT', CURRENT_USER(), 'concession_refused', NOW());
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `concession_refused_update` AFTER UPDATE ON `concession_refused` FOR EACH ROW BEGIN
+    INSERT INTO data_changes_logs (operacja, uzytkownik, tabela, czas)
+    VALUES ('UPDATE', CURRENT_USER(), 'concession_refused', NOW());
+END
+$$
+DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -10302,6 +10452,31 @@ INSERT INTO `concession_remitted` (`id`, `dkn`, `nazwa`, `poczta`, `adres`, `kod
 (481, 605, 'Zakłady Górniczo-Hutnicze \\Bolesław\\ S.A.', 'Bukowno', 'ul. Kolejowa 37', '32-332', 'Bukowno', 'małopolskie', '6370102196', 'PCC', 'umorzono', '2017-08-31', 'udzielenie koncesji', 'art. 105 § 2 kpa');
 INSERT INTO `concession_remitted` (`id`, `dkn`, `nazwa`, `poczta`, `adres`, `kod`, `miejscowosc`, `wojewodztwo`, `nip`, `rodzajKoncesji`, `sposobZakonczenia`, `dataWydania`, `sprawa`, `podstawaPrawna`) VALUES
 (482, 28334, 'ZETA GOLD Sp. z o.o.', 'Bydgoszcz', 'ul. Gajowa 102 lok 5', '85-717', 'Bydgoszcz', 'kujawsko-pomorskie', '5542938722', 'OPC', 'umorzono', '2016-09-23', 'udzielenie koncesji', '');
+
+--
+-- Triggers `concession_remitted`
+--
+DELIMITER $$
+CREATE TRIGGER `concession_remitted_delete` AFTER DELETE ON `concession_remitted` FOR EACH ROW BEGIN
+    INSERT INTO data_changes_logs (operacja, uzytkownik, tabela, czas)
+    VALUES ('DELETE', CURRENT_USER(), 'concession_remitted', NOW());
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `concession_remitted_insert` AFTER INSERT ON `concession_remitted` FOR EACH ROW BEGIN
+    INSERT INTO data_changes_logs (operacja, uzytkownik, tabela, czas)
+    VALUES ('INSERT', CURRENT_USER(), 'concession_remitted', NOW());
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `concession_remitted_update` AFTER UPDATE ON `concession_remitted` FOR EACH ROW BEGIN
+    INSERT INTO data_changes_logs (operacja, uzytkownik, tabela, czas)
+    VALUES ('UPDATE', CURRENT_USER(), 'concession_remitted', NOW());
+END
+$$
+DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -11164,6 +11339,31 @@ INSERT INTO `concession_withdrawn` (`id`, `dkn`, `nazwa`, `poczta`, `adres`, `ko
 (828, 5130, 'Zygmunt Rybkowski Zakład Usługowo Handlowy \\PROGAZ\\', 'Żyrardów', 'ul. Piękna 46', '96-300', 'Żyrardów', 'mazowieckie', '8381188386', '015630063', 'OPC', '2021-05-06', 'art. 41 ust. 2 pkt 1 uPe', ''),
 (829, 2031, 'ZYGMUNT ŚWIĄTEK STACJA BENZYNOWA AS', 'Gidle', 'Borki 5b', '97-540', 'Borki', 'łódzkie', '7720007494', '590021723', 'OPC', '2023-11-29', 'art. 41 ust. 2 pkt 4 uPe', '');
 
+--
+-- Triggers `concession_withdrawn`
+--
+DELIMITER $$
+CREATE TRIGGER `concession_withdrawn_delete` AFTER DELETE ON `concession_withdrawn` FOR EACH ROW BEGIN
+    INSERT INTO data_changes_logs (operacja, uzytkownik, tabela, czas)
+    VALUES ('DELETE', CURRENT_USER(), 'concession_withdrawn', NOW());
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `concession_withdrawn_insert` AFTER INSERT ON `concession_withdrawn` FOR EACH ROW BEGIN
+    INSERT INTO data_changes_logs (operacja, uzytkownik, tabela, czas)
+    VALUES ('INSERT', CURRENT_USER(), 'concession_withdrawn', NOW());
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `concession_withdrawn_update` AFTER UPDATE ON `concession_withdrawn` FOR EACH ROW BEGIN
+    INSERT INTO data_changes_logs (operacja, uzytkownik, tabela, czas)
+    VALUES ('UPDATE', CURRENT_USER(), 'concession_withdrawn', NOW());
+END
+$$
+DELIMITER ;
+
 -- --------------------------------------------------------
 
 --
@@ -12009,6 +12209,72 @@ INSERT INTO `concession_without_recognition` (`id`, `dkn`, `nazwa`, `poczta`, `a
 (810, 49486, 'ZMK SAS Spółka z ograniczoną odpowiedzialnością', 'Busko-Zdrój', 'ul. Przemysłowa 3', '28-100', 'Owczary', 'świętokrzyskie', '6551975634', '368874952', 'WEE', 'bez rozpoznania', '2019-04-03', 'udzielenie koncesji', 'art. 35 ust. 2b uPe'),
 (811, 69265, 'ŻABICEPV SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ', 'Warszawa', 'ul. Tytusa Chałubińskiego 8', '00-613', 'Warszawa', 'mazowieckie', '7692235041', '385061581', 'WEE', 'bez rozpoznania', '2021-05-31', 'udzielenie koncesji', 'art. 35 ust. 2b uPe');
 
+--
+-- Triggers `concession_without_recognition`
+--
+DELIMITER $$
+CREATE TRIGGER `concession_without_recognition_delete` AFTER DELETE ON `concession_without_recognition` FOR EACH ROW BEGIN
+    INSERT INTO data_changes_logs (operacja, uzytkownik, tabela, czas)
+    VALUES ('DELETE', CURRENT_USER(), 'concession_without_recognition', NOW());
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `concession_without_recognition_insert` AFTER INSERT ON `concession_without_recognition` FOR EACH ROW BEGIN
+    INSERT INTO data_changes_logs (operacja, uzytkownik, tabela, czas)
+    VALUES ('INSERT', CURRENT_USER(), 'concession_without_recognition', NOW());
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `concession_without_recognition_update` AFTER UPDATE ON `concession_without_recognition` FOR EACH ROW BEGIN
+    INSERT INTO data_changes_logs (operacja, uzytkownik, tabela, czas)
+    VALUES ('UPDATE', CURRENT_USER(), 'concession_without_recognition', NOW());
+END
+$$
+DELIMITER ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `data_changes_logs`
+--
+
+CREATE TABLE `data_changes_logs` (
+  `id` int(11) NOT NULL,
+  `operacja` varchar(255) NOT NULL,
+  `uzytkownik` varchar(255) NOT NULL,
+  `tabela` varchar(255) NOT NULL,
+  `czas` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `data_changes_logs`
+--
+
+INSERT INTO `data_changes_logs` (`id`, `operacja`, `uzytkownik`, `tabela`, `czas`) VALUES
+(3, 'UPDATE', 'root@localhost', 'concession_application', '2024-03-24 21:10:32');
+
+-- --------------------------------------------------------
+
+--
+-- Stand-in structure for view `koncesje_inne_do_przedawnienia`
+-- (See below for the actual view)
+--
+CREATE TABLE `koncesje_inne_do_przedawnienia` (
+`Dni do przedawnienia` bigint(21)
+,`id` int(11)
+,`dkn` int(11)
+,`nazwa` varchar(255)
+,`adres` varchar(255)
+,`kod` varchar(20)
+,`miejscowosc` varchar(255)
+,`wojewodztwo` varchar(255)
+,`nip` varchar(20)
+,`plik` text
+,`uwagi` varchar(255)
+);
+
 -- --------------------------------------------------------
 
 --
@@ -12029,6 +12295,26 @@ CREATE TABLE `koncesje_inne_wydane_na_wojewodztwo` (
 CREATE TABLE `koncesje_paliwowe_wydane_na_wojewodztwo` (
 `wojewodztwo` varchar(255)
 ,`ilosc` bigint(21)
+);
+
+-- --------------------------------------------------------
+
+--
+-- Stand-in structure for view `koncesje_paliw_do_przedawnienia`
+-- (See below for the actual view)
+--
+CREATE TABLE `koncesje_paliw_do_przedawnienia` (
+`Dni do przedawnienia` bigint(21)
+,`id` int(11)
+,`dkn` int(11)
+,`nazwa` varchar(255)
+,`adres` varchar(255)
+,`kod` varchar(20)
+,`miejscowosc` varchar(255)
+,`wojewodztwo` varchar(255)
+,`nip` varchar(20)
+,`plik` varchar(87)
+,`uwagi` varchar(42)
 );
 
 -- --------------------------------------------------------
@@ -12069,6 +12355,15 @@ CREATE TABLE `wszystkie_koncesje_wydane_na_wojewodztwo` (
 -- --------------------------------------------------------
 
 --
+-- Structure for view `koncesje_inne_do_przedawnienia`
+--
+DROP TABLE IF EXISTS `koncesje_inne_do_przedawnienia`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `koncesje_inne_do_przedawnienia`  AS SELECT timestampdiff(DAY,current_timestamp(),`concession_other_fuel`.`dataDo`) AS `Dni do przedawnienia`, `concession_other_fuel`.`id` AS `id`, `concession_other_fuel`.`dkn` AS `dkn`, `concession_other_fuel`.`nazwa` AS `nazwa`, `concession_other_fuel`.`adres` AS `adres`, `concession_other_fuel`.`kod` AS `kod`, `concession_other_fuel`.`miejscowosc` AS `miejscowosc`, `concession_other_fuel`.`wojewodztwo` AS `wojewodztwo`, `concession_other_fuel`.`nip` AS `nip`, `concession_other_fuel`.`plik` AS `plik`, `concession_other_fuel`.`uwagi` AS `uwagi` FROM `concession_other_fuel` ORDER BY timestampdiff(DAY,current_timestamp(),`concession_other_fuel`.`dataDo`) ASC ;
+
+-- --------------------------------------------------------
+
+--
 -- Structure for view `koncesje_inne_wydane_na_wojewodztwo`
 --
 DROP TABLE IF EXISTS `koncesje_inne_wydane_na_wojewodztwo`;
@@ -12083,6 +12378,15 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 DROP TABLE IF EXISTS `koncesje_paliwowe_wydane_na_wojewodztwo`;
 
 CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `koncesje_paliwowe_wydane_na_wojewodztwo`  AS SELECT `concession_fuel`.`wojewodztwo` AS `wojewodztwo`, count(0) AS `ilosc` FROM `concession_fuel` GROUP BY `concession_fuel`.`wojewodztwo` ;
+
+-- --------------------------------------------------------
+
+--
+-- Structure for view `koncesje_paliw_do_przedawnienia`
+--
+DROP TABLE IF EXISTS `koncesje_paliw_do_przedawnienia`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `koncesje_paliw_do_przedawnienia`  AS SELECT timestampdiff(DAY,current_timestamp(),`concession_fuel`.`dataDo`) AS `Dni do przedawnienia`, `concession_fuel`.`id` AS `id`, `concession_fuel`.`dkn` AS `dkn`, `concession_fuel`.`nazwa` AS `nazwa`, `concession_fuel`.`adres` AS `adres`, `concession_fuel`.`kod` AS `kod`, `concession_fuel`.`miejscowosc` AS `miejscowosc`, `concession_fuel`.`wojewodztwo` AS `wojewodztwo`, `concession_fuel`.`nip` AS `nip`, `concession_fuel`.`plik` AS `plik`, `concession_fuel`.`uwagi` AS `uwagi` FROM `concession_fuel` ORDER BY timestampdiff(DAY,current_timestamp(),`concession_fuel`.`dataDo`) ASC ;
 
 -- --------------------------------------------------------
 
@@ -12155,6 +12459,12 @@ ALTER TABLE `concession_withdrawn`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `data_changes_logs`
+--
+ALTER TABLE `data_changes_logs`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -12205,6 +12515,12 @@ ALTER TABLE `concession_remitted`
 --
 ALTER TABLE `concession_withdrawn`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=830;
+
+--
+-- AUTO_INCREMENT for table `data_changes_logs`
+--
+ALTER TABLE `data_changes_logs`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 DELIMITER $$
 --
